@@ -544,7 +544,7 @@ uint16_t* getStringOffsetsLengths(eDataIDs dataId, uint16_t* offsetsLength)
 		0,                      // 95: DID_REFERENCE_IMU
 		0,                      // 96: DID_IMU3_RAW
 		0,                      // 97: DID_IMU_RAW
-		0,                      // 98:
+		0,                      // 98: DID_BRIO_DATA
 		0,                      // 99:
 		0,                      // 100:
 		0,                      // 101:

@@ -153,6 +153,7 @@ static void PopulateSizeMappings(uint32_t sizeMap[DID_COUNT])
     sizeMap[DID_REFERENCE_IMU] = sizeof(imu_t);
     sizeMap[DID_REFERENCE_PIMU] = sizeof(pimu_t);
     sizeMap[DID_REFERENCE_MAGNETOMETER] = sizeof(magnetometer_t);
+    sizeMap[DID_BRIO_DATA] = sizeof(briometrix_t); 
 
     sizeMap[DID_EVB_STATUS] = sizeof(evb_status_t);
     sizeMap[DID_EVB_FLASH_CFG] = sizeof(evb_flash_cfg_t);
@@ -1620,6 +1621,31 @@ static void PopulateCanConfigMappings(map_name_to_info_t mappings[DID_COUNT])
     ADD_MAP(m, totalSize, "can_transmit_address[CID_ROLL_ROLLRATE]", can_transmit_address[CID_ROLL_ROLLRATE], 0, DataTypeUInt32, uint32_t&, DataFlagsDisplayHex);
     ADD_MAP(m, totalSize, "can_baudrate_kbps", can_baudrate_kbps, 0, DataTypeUInt16, uint16_t, 0);
     ADD_MAP(m, totalSize, "can_receive_address", can_receive_address, 0, DataTypeUInt32, uint32_t, DataFlagsDisplayHex);
+
+    ASSERT_SIZE(totalSize);
+}
+
+static void PopulateBrioMappings(map_name_to_info_t mappings[DID_COUNT])
+{
+    typedef briometrix_t MAP_TYPE;
+    map_name_to_info_t& m = mappings[DID_BRIO_DATA];
+    uint32_t totalSize = 0;
+    ADD_MAP(m, totalSize, "week", week, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "timeOfWeek", timeOfWeek, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "insStatus", insStatus, 0, DataTypeUInt32, uint32_t, DataFlagsDisplayHex);
+    ADD_MAP(m, totalSize, "hdwStatus", hdwStatus, 0, DataTypeUInt32, uint32_t, DataFlagsDisplayHex);
+    ADD_MAP(m, totalSize, "theta[0]", theta[0], 0, DataTypeFloat, float&, 0);
+    ADD_MAP(m, totalSize, "theta[1]", theta[1], 0, DataTypeFloat, float&, 0);
+    ADD_MAP(m, totalSize, "theta[2]", theta[2], 0, DataTypeFloat, float&, 0);
+    ADD_MAP(m, totalSize, "uvw[0]", uvw[0], 0, DataTypeFloat, float&, 0);
+    ADD_MAP(m, totalSize, "uvw[1]", uvw[1], 0, DataTypeFloat, float&, 0);
+    ADD_MAP(m, totalSize, "uvw[2]", uvw[2], 0, DataTypeFloat, float&, 0);
+    ADD_MAP(m, totalSize, "lla[0]", lla[0], 0, DataTypeDouble, double&, 0);
+    ADD_MAP(m, totalSize, "lla[1]", lla[1], 0, DataTypeDouble, double&, 0);
+    ADD_MAP(m, totalSize, "lla[2]", lla[2], 0, DataTypeDouble, double&, 0);
+    ADD_MAP(m, totalSize, "ned[0]", ned[0], 0, DataTypeFloat, float&, 0);
+    ADD_MAP(m, totalSize, "ned[1]", ned[1], 0, DataTypeFloat, float&, 0);
+    ADD_MAP(m, totalSize, "ned[2]", ned[2], 0, DataTypeFloat, float&, 0);
 
     ASSERT_SIZE(totalSize);
 }

@@ -18,6 +18,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <time.h>
 #include <string.h>
 #include "ISConstants.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -129,6 +130,7 @@ typedef uint32_t eDataIDs;
 #define DID_REFERENCE_IMU               (eDataIDs)95 /** (imu_t) Raw reference or truth IMU used for manufacturing calibration and testing. Input from testbed. */
 #define DID_IMU3_RAW                    (eDataIDs)96 /** (imu3_t) Triple IMU data calibrated from DID_IMU3_UNCAL.  We recommend use of DID_IMU or DID_PIMU as they are oversampled and contain less noise. */
 #define DID_IMU_RAW                     (eDataIDs)97 /** (imu_t) IMU data averaged from DID_IMU3_RAW.  Use this IMU data for output data rates faster than DID_FLASH_CONFIG.startupNavDtMs.  Otherwise we recommend use of DID_IMU or DID_PIMU as they are oversampled and contain less noise. */
+#define DID_BRIO_DATA                   (eDataIDs)98 /** (briometrix_t) Custom dataset for brio*/
 
 // Adding a new data id?
 // 1] Add it above and increment the previous number, include the matching data structure type in the comments
@@ -4388,6 +4390,44 @@ typedef struct PACKED
 	uint32_t				can_receive_address;
 
 } can_config_t;
+
+typedef struct PACKED
+{
+    uint32_t localDate;
+    float localTime;
+    float systemTime;
+    double lattitude;
+    double longitude;
+    double altitude;
+    float roll;
+    float pitch;
+    float yaw;
+    float aX; 
+    float aY; 
+    float aZ; 
+    float gX; 
+    float gY; 
+    float gZ; 
+    float gravX; 
+    float gravY; 
+    float gravZ; 
+    float speedX; 
+    float speedY; 
+    float speedZ; 
+    float rawspeedX; 
+    float rawSpeedY; 
+    float rawSpeedZ; 
+    float hasINS; 
+    float hasIMU; 
+    float hasINS2; 
+    float hasGPSPosition; 
+    float hasGPSSpeed; 
+    float hAcc; 
+    float vAcc; 
+    float nSats; 
+    float solnStatus; 
+    bool pause;
+} briometrix_t;
 
 #if defined(INCLUDE_LUNA_DATA_SETS)
 #include "luna_data_sets.h"

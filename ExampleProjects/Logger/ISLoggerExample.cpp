@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 	// STEP 3: Enable data logger
 	// get log type from command line
 	cISLogger::eLogType logType = (argc < 3 ? cISLogger::eLogType::LOGTYPE_DAT : cISLogger::ParseLogType(argv[2]));
-	inertialSense.SetLoggerEnabled(true, "", logType);
+	inertialSense.SetLoggerEnabled(true, "", logType, RMC_BITS_INS1);
 
 
 	// STEP 4: Enable data broadcasting

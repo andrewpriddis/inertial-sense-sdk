@@ -100,6 +100,7 @@ DID_UNUSED_94                   = 94
 DID_REFERENCE_IMU               = 95
 DID_IMU3_RAW                    = 96
 DID_IMU_RAW                     = 97
+DID_BRIO_DATA                   = 98
 DID_EVB_LUNA_VELOCITY_CONTROL   = 114
 
 NUM_DIDS                        = 120
