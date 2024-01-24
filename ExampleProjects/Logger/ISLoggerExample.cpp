@@ -11,10 +11,22 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 #include <stdio.h>
+#include <string.h>
+
+#define CONNECTION_ATTEMPT_LIMIT 50
 
 // STEP 1: Add Includes
 // Change these include paths to the correct paths for your project
 #include "../../src/InertialSense.h"
+
+bool connecting_;
+
+std::string protocol_; 
+std::string ip_;
+int port_; 
+std::string mount_point_;
+std::string username_;
+std::string password_;
 
 static void msgHandlerIsb(InertialSense* i, p_data_t* data, int pHandle)
 {
@@ -22,11 +34,73 @@ static void msgHandlerIsb(InertialSense* i, p_data_t* data, int pHandle)
 	printf("Data count: %" PRIu64 "          \r", ++dataCount);
 }
 
+std::string get_connection_string(std::string protocol_, std::string ip_, int port_, std::string mount_point_, std::string username_, std::string password_) {
+    std::string RTK_connection = "TCP:" + protocol_ + ":" + ip_ + ":" + std::to_string(port_);
+    if (!mount_point_.empty() || !username_.empty())
+        RTK_connection.append(":" + mount_point_);
+    if (!username_.empty()) {
+        RTK_connection.append(":" + username_);
+        if (!password_.empty())
+            RTK_connection.append(":" + password_);
+    }
+
+    return RTK_connection;
+}
+
+//Connect to NTRIP
+void connect_rtk_client(InertialSense* is_)
+{
+    // if (is_ == nullptr) {
+    //     // ROS_FATAL("RTK Client connection requested, but configureIS() hasn't been called in the provider.");
+    //     ros::shutdown();
+    //     connecting_ = false;
+    //     return;
+    // }
+    
+    connecting_ = true;
+
+    // [type]:[protocol]:[ip/url]:[port]:[mountpoint]:[username]:[password]
+    std::string RTK_connection = get_connection_string();
+
+    int RTK_connection_attempt_count = 0;
+    while (RTK_connection_attempt_count < CONNECTION_ATTEMPT_LIMIT)
+    {
+        ++RTK_connection_attempt_count;
+
+        bool connected = is_->OpenConnectionToServer(RTK_connection);
+
+        if (connected)
+        {
+            // ROS_INFO_STREAM("Successfully connected to " << RTK_connection << " RTK server");
+            break;
+        }
+        else
+        {
+            std::cout << "\nFailed to connect to base server at " << RTK_connection << "\n";
+
+            if (RTK_connection_attempt_count >= CONNECTION_ATTEMPT_LIMIT)
+            {
+                std::cout << "\nGiving up after " << RTK_connection_attempt_count << " failed attempts.\n";
+            }
+            else
+            {
+                // int sleep_duration = RTK_connection_attempt_count * CONNECTION_ATTEMPT_LIMIT;
+                std::cout << "\nRetrying connection in " << "5" << " seconds.\n";
+                sleep(5);
+            }
+        }
+    }
+
+    connecting_ = false;
+}
+
+
+
 int main(int argc, char* argv[])
 {
 	if (argc < 2)
 	{
-		printf("Please pass the com port and then optionally the log type as the only arguments (dat,sdat,csv,kml).\r\n");
+		printf("Please pass the com port and then optionally the log type as the first two arguments (dat,sdat,csv,kml).\r\n");
 		// In Visual Studio IDE, this can be done through "Project Properties -> Debugging -> Command Arguments: COM3 kml" 
 		return -1;
 	}
@@ -41,10 +115,18 @@ int main(int argc, char* argv[])
 	}
 
 
+    //COnfigure as Rover with compassing
+
+    //Connect to RTK Client
+
+
+
+
+
 	// STEP 3: Enable data logger
 	// get log type from command line
 	cISLogger::eLogType logType = (argc < 3 ? cISLogger::eLogType::LOGTYPE_DAT : cISLogger::ParseLogType(argv[2]));
-	inertialSense.SetLoggerEnabled(true, "", logType, RMC_BITS_INS1);
+	inertialSense.SetLoggerEnabled(true, "", logType);
 
 
 	// STEP 4: Enable data broadcasting

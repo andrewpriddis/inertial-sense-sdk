@@ -1630,7 +1630,44 @@ static void PopulateBrioMappings(map_name_to_info_t mappings[DID_COUNT])
     typedef briometrix_t MAP_TYPE;
     map_name_to_info_t& m = mappings[DID_BRIO_DATA];
     uint32_t totalSize = 0;
-    ADD_MAP(m, totalSize, "week", week, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "localDate", localDate, 0, DataTypeUInt32, uint32_t, 0);
+    float localTime;
+    float systemTime;
+    double lattitude;
+    double longitude;
+    double altitude;
+    float roll;
+    float pitch;
+    float yaw;
+    float aX; 
+    float aY; 
+    float aZ; 
+    float gX; 
+    float gY; 
+    float gZ; 
+    float gravX; 
+    float gravY; 
+    float gravZ; 
+    float speedX; 
+    float speedY; 
+    float speedZ; 
+    float rawspeedX; 
+    float rawSpeedY; 
+    float rawSpeedZ; 
+    float hasINS; 
+    float hasIMU; 
+    float hasINS2; 
+    float hasGPSPosition; 
+    float hasGPSSpeed; 
+    float hAcc; 
+    float vAcc; 
+    float nSats; 
+    float solnStatus; 
+    bool pause;
+
+
+
+
     ADD_MAP(m, totalSize, "timeOfWeek", timeOfWeek, 0, DataTypeDouble, double, 0);
     ADD_MAP(m, totalSize, "insStatus", insStatus, 0, DataTypeUInt32, uint32_t, DataFlagsDisplayHex);
     ADD_MAP(m, totalSize, "hdwStatus", hdwStatus, 0, DataTypeUInt32, uint32_t, DataFlagsDisplayHex);
