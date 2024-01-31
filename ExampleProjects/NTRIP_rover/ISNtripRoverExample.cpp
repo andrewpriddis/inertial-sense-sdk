@@ -21,222 +21,286 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "../../src/ISClient.h"
 #include "../../src/ISUtilities.h"
 #include "../../src/protocol_nmea.h"
+#include "../../src/ISLogger.h"
 
 using namespace std;
 
 static cISStream *s_clientStream;
+static cISLogger *g_logger;
+static briometrix_t g_brio = {};
+
+
+bool SetLoggerEnabled(
+        bool enable, 
+        const std::string& path = cISLogger::g_emptyString, 
+        cISLogger::eLogType logType = cISLogger::eLogType::LOGTYPE_DAT, 
+        uint64_t rmcPreset = RMC_PRESET_PPD_BITS,
+        uint32_t rmcOptions = RMC_OPTIONS_PRESERVE_CTRL,
+        float maxDiskSpacePercent = 0.5f, 
+        uint32_t maxFileSize = 1024 * 1024 * 5, 
+        const std::string& subFolder = cISLogger::g_emptyString);
 
 
 int stop_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *comm)
 {
-	// Stop all broadcasts on the device
-	int n = is_comm_stop_broadcasts_all_ports(comm);
-	if (n != serialPortWrite(serialPort, comm->buf.start, n))
-	{
-		printf("Failed to encode and write stop broadcasts message\r\n");
-		return -3;
-	}
-	return 0;
+    // Stop all broadcasts on the device
+    int n = is_comm_stop_broadcasts_all_ports(comm);
+    if (n != serialPortWrite(serialPort, comm->buf.start, n))
+    {
+        printf("Failed to encode and write stop broadcasts message\r\n");
+        return -3;
+    }
+    return 0;
 }
 
 
 int enable_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *comm)
 {
-	int n = is_comm_get_data(comm, _DID_GPS1_POS, 0, 0, 1);
-	if (n != serialPortWrite(serialPort, comm->buf.start, n))
-	{
-		printf("Failed to encode and write get GPS message\r\n");
-		return -5;
-	}
-	n = is_comm_get_data(comm, DID_GPS1_RTK_POS_REL, 0, 0, 1);
-	if (n != serialPortWrite(serialPort, comm->buf.start, n))
-	{
-		printf("Failed to encode and write get GPS message\r\n");
-		return -5;
-	}
-	return 0;
+    int n = is_comm_get_data(comm, _DID_GPS1_POS, 0, 0, 1);
+    if (n != serialPortWrite(serialPort, comm->buf.start, n))
+    {
+        printf("Failed to encode and write get GPS message\r\n");
+        return -5;
+    }
+    n = is_comm_get_data(comm, DID_GPS1_RTK_POS_REL, 0, 0, 1);
+    if (n != serialPortWrite(serialPort, comm->buf.start, n))
+    {
+        printf("Failed to encode and write get GPS message\r\n");
+        return -5;
+    }
+    return 0;
 }
 
 
 static struct
 {
-	gps_pos_t		gps;
-	gps_rtk_rel_t	rel;
-	uint8_t			baseCount;
+    gps_pos_t		gps;
+    gps_rtk_rel_t	rel;
+    uint8_t			baseCount;
 } s_rx = {};
 
 void handle_uINS_data(is_comm_instance_t *comm, cISStream *clientStream)
 {
-	switch (comm->dataHdr.id)
-	{
-	case DID_GPS1_RTK_POS_REL:
-		is_comm_copy_to_struct(&s_rx.rel, comm, sizeof(s_rx.rel));		
-		break;
+    switch (comm->dataHdr.id)
+    {
+    case DID_GPS1_RTK_POS_REL:
+        is_comm_copy_to_struct(&s_rx.rel, comm, sizeof(s_rx.rel));		
+        break;
 
-	case DID_GPS1_POS:		
-		is_comm_copy_to_struct(&s_rx.gps, comm, sizeof(s_rx.gps));
-		string fix;
-		switch (s_rx.gps.status&GPS_STATUS_FIX_MASK)
-		{
-		default:						fix = "None      ";		break;
-		case GPS_STATUS_FIX_3D:			fix = "3D        ";		break;
-		case GPS_STATUS_FIX_RTK_SINGLE:	fix = "RTK-Single";		break;
-		case GPS_STATUS_FIX_RTK_FLOAT:	fix = "RTK-Float ";		break;
-		case GPS_STATUS_FIX_RTK_FIX:	fix = "RTK       ";		break;
-		}
+    case DID_GPS1_POS:		
+        is_comm_copy_to_struct(&s_rx.gps, comm, sizeof(s_rx.gps));
+        string fix;
+        switch (s_rx.gps.status&GPS_STATUS_FIX_MASK)
+        {
+        default:						fix = "None      ";		break;
+        case GPS_STATUS_FIX_3D:			fix = "3D        ";		break;
+        case GPS_STATUS_FIX_RTK_SINGLE:	fix = "RTK-Single";		break;
+        case GPS_STATUS_FIX_RTK_FLOAT:	fix = "RTK-Float ";		break;
+        case GPS_STATUS_FIX_RTK_FIX:	fix = "RTK       ";		break;
+        }
 
-		printf("LL %12.9f %12.9f, hacc %4.2fm, age %3.1fs, fix-%s  %s\n",
-			s_rx.gps.lla[0],
-			s_rx.gps.lla[1],
-			s_rx.gps.hAcc,
-			s_rx.rel.differentialAge,	// time since last base message
-			fix.c_str(),
-			(s_rx.gps.status&GPS_STATUS_FLAGS_GPS1_RTK_BASE_DATA_MISSING ? "BASE: No data" : (string("BASE: ")+to_string(s_rx.baseCount)).c_str())
-			 );
+        printf("LL %12.9f %12.9f, hacc %4.2fm, age %3.1fs, fix-%s  %s\n",
+            s_rx.gps.lla[0],
+            s_rx.gps.lla[1],
+            s_rx.gps.hAcc,
+            s_rx.rel.differentialAge,	// time since last base message
+            fix.c_str(),
+            (s_rx.gps.status&GPS_STATUS_FLAGS_GPS1_RTK_BASE_DATA_MISSING ? "BASE: No data" : (string("BASE: ")+to_string(s_rx.baseCount)).c_str())
+             );
 
-		// Forward our position via GGA every 5 seconds to the RTK base.
-		static time_t lastTime;
-		time_t currentTime = time(NULLPTR);
-		if (abs(currentTime - lastTime) > 5)
-		{	// Update every 5 seconds
-			lastTime = currentTime;
-			if ((s_rx.gps.status&GPS_STATUS_FIX_MASK) >= GPS_STATUS_FIX_3D)
-			{	// GPS position is valid
-				char buf[512];
-				int n = nmea_gga(buf, sizeof(buf), s_rx.gps);
-				clientStream->Write(buf, n);
-				printf("Sending position to Base: \n%s\n", string(buf,n).c_str());
-			}
-			else
-			{
-				printf("Waiting for fix...\n");
-			}
-		}
-		break;
-	}
+        // Forward our position via GGA every 5 seconds to the RTK base.
+        static time_t lastTime;
+        time_t currentTime = time(NULLPTR);
+        if (abs(currentTime - lastTime) > 5)
+        {	// Update every 5 seconds
+            lastTime = currentTime;
+            if ((s_rx.gps.status&GPS_STATUS_FIX_MASK) >= GPS_STATUS_FIX_3D)
+            {	// GPS position is valid
+                char buf[512];
+                int n = nmea_gga(buf, sizeof(buf), s_rx.gps);
+                clientStream->Write(buf, n);
+                printf("Sending position to Base: \n%s\n", string(buf,n).c_str());
+            }
+            else
+            {
+                printf("Waiting for fix...\n");
+            }
+        }
+        break;
+    }
+    if (g_logger->GetType() == cISLogger::eLogType::LOGTYPE_BRIO)
+    {
+        p_data_t packet;
+        packet.hdr.id = DID_BRIO_DATA;
+        packet.hdr.offset = 0;
+        packet.hdr.size = sizeof(briometrix_t);
+        memcpy(&packet.buf, &g_brio, sizeof(briometrix_t));
+
+        g_logger->LogData(0, &packet.hdr, packet.buf);
+    }
+    else
+    {
+        // g_logger->LogData();
+    }
 }
 
 
 void read_uINS_data(serial_port_t* serialPort, is_comm_instance_t *comm, cISStream *clientStream)
 {
-	protocol_type_t ptype;
+    protocol_type_t ptype;
 
-	// Get available size of comm buffer
-	int n = is_comm_free(comm);
+    // Get available size of comm buffer
+    int n = is_comm_free(comm);
 
-	// Read data directly into comm buffer
-	if ((n = serialPortRead(serialPort, comm->buf.tail, n)))
-	{
-		// Update comm buffer tail pointer
-		comm->buf.tail += n;
+    // Read data directly into comm buffer
+    if ((n = serialPortRead(serialPort, comm->buf.tail, n)))
+    {
+        // Update comm buffer tail pointer
+        comm->buf.tail += n;
 
-		// Search comm buffer for valid packets
-		while ((ptype = is_comm_parse(comm)) != _PTYPE_NONE)
-		{
-			if (ptype == _PTYPE_INERTIAL_SENSE_DATA)
-			{
-				handle_uINS_data(comm, clientStream);
-			}
-		}
-	}
+        // Search comm buffer for valid packets
+        while ((ptype = is_comm_parse(comm)) != _PTYPE_NONE)
+        {
+            if (ptype == _PTYPE_INERTIAL_SENSE_DATA)
+            {
+                handle_uINS_data(comm, clientStream);
+            }
+        }
+    }
 }
 
 
 void read_RTK_base_data(serial_port_t* serialPort, is_comm_instance_t *comm, cISStream *clientStream)
 {
-	protocol_type_t ptype;
+    protocol_type_t ptype;
 
-	// Get available size of comm buffer
-	int n = is_comm_free(comm);
+    // Get available size of comm buffer
+    int n = is_comm_free(comm);
 
-	// Read data from RTK Base station
-	if ((n = clientStream->Read(comm->buf.tail, n)))
+    // Read data from RTK Base station
+    if ((n = clientStream->Read(comm->buf.tail, n)))
+    {
+        // Update comm buffer tail pointer
+        comm->buf.tail += n;
+
+        // Search comm buffer for valid packets
+        while ((ptype = is_comm_parse(comm)) != _PTYPE_NONE)
+        {
+            if (ptype == _PTYPE_RTCM3)
+            {	// Forward RTCM3 packets to uINS
+                serialPortWrite(serialPort, comm->dataPtr, comm->dataHdr.size);
+                s_rx.baseCount++;
+            }
+        }
+    }
+}
+
+bool EnableLogging(const string& path, cISLogger::eLogType logType, float maxDiskSpacePercent, uint32_t maxFileSize, const string& subFolder)
+{
+	if (!g_logger->InitSaveTimestamp(subFolder, path, cISLogger::g_emptyString, 1, logType, maxDiskSpacePercent, maxFileSize, subFolder.length() != 0))
 	{
-		// Update comm buffer tail pointer
-		comm->buf.tail += n;
-
-		// Search comm buffer for valid packets
-		while ((ptype = is_comm_parse(comm)) != _PTYPE_NONE)
-		{
-			if (ptype == _PTYPE_RTCM3)
-			{	// Forward RTCM3 packets to uINS
-				serialPortWrite(serialPort, comm->dataPtr, comm->dataHdr.size);
-				s_rx.baseCount++;
-			}
-		}
+		return false;
 	}
+	g_logger->EnableLogging(true);
+
+	
+	return true;
+}
+
+bool SetLoggerEnabled(
+    bool enable, 
+    const string& path, 
+    cISLogger::eLogType logType,
+    uint64_t rmcPreset, 
+    uint32_t rmcOptions,
+    float maxDiskSpacePercent, 
+    uint32_t maxFileSize, 
+    const string& subFolder)
+{
+    if (enable)
+    {
+        return EnableLogging(path, logType, maxDiskSpacePercent, maxFileSize, subFolder);
+    }
+
+    // !enable, shutdown logger gracefully
+    //DisableLogging(); //TODO
+    return true;
 }
 
 
 int main(int argc, char* argv[])
 {
-	if (argc < 2)
-	{
-		printf("Please pass the com port and the RTK base connection string as the 1st and 2nd arguments.\r\n");
-		printf("In Visual Studio IDE, this can be done through \"Project Properties -> Debugging ->.\r\n");
-		printf("Command Arguments\": COM3 TCP:RTCM3:192.168.1.100:7777:mountpoint:username:password\r\n");
-		return -1;
-	}
+    if (argc < 2)
+    {
+        printf("Please pass the com port, RTK base connection string, and log type as the 1st, 2nd and 3rd arguments.\r\n");
+        printf("In Visual Studio IDE, this can be done through \"Project Properties -> Debugging ->.\r\n");
+        printf("Command Arguments\": COM3 TCP:RTCM3:192.168.1.100:7777:mountpoint:username:password\r\n");
+        return -1;
+    }
 
-	// STEP 2: Init comm instance
-	is_comm_instance_t comm;
-	uint8_t buffer[2048];
+    // STEP 2: Init comm instance
+    is_comm_instance_t comm;
+    uint8_t buffer[2048];
 
-	// Initialize the comm instance, sets up state tracking, packet parsing, etc.
-	is_comm_init(&comm, buffer, sizeof(buffer));
+    // Initialize the comm instance, sets up state tracking, packet parsing, etc.
+    is_comm_init(&comm, buffer, sizeof(buffer));
 
-	// STEP 3: Initialize and open serial port
-	serial_port_t serialPort;
+    // STEP 3: Initialize and open serial port
+    serial_port_t serialPort;
 
-	// Initialize the serial port (Windows, MAC or Linux) - if using an embedded system like Arduino,
-	//  you will need to handle the serial port creation, open and reads yourself. In this
-	//  case, you do not need to include serialPort.h/.c and serialPortPlatform.h/.c in your project.
-	serialPortPlatformInit(&serialPort);
+    // Initialize the serial port (Windows, MAC or Linux) - if using an embedded system like Arduino,
+    //  you will need to handle the serial port creation, open and reads yourself. In this
+    //  case, you do not need to include serialPort.h/.c and serialPortPlatform.h/.c in your project.
+    serialPortPlatformInit(&serialPort);
 
-	// Open serial, last parameter is a 1 which means a blocking read, you can set as 0 for non-blocking
-	// you can change the baudrate to a supported baud rate (IS_BAUDRATE_*), make sure to reboot the uINS
-	//  if you are changing baud rates, you only need to do this when you are changing baud rates.
-	if (!serialPortOpen(&serialPort, argv[1], IS_BAUDRATE_921600, 0))
-	{
-		printf("Failed to open serial port on com port %s\r\n", argv[1]);
-		return -2;
-	}
+    // Open serial, last parameter is a 1 which means a blocking read, you can set as 0 for non-blocking
+    // you can change the baudrate to a supported baud rate (IS_BAUDRATE_*), make sure to reboot the uINS
+    //  if you are changing baud rates, you only need to do this when you are changing baud rates.
+    if (!serialPortOpen(&serialPort, argv[1], IS_BAUDRATE_921600, 0))
+    {
+        printf("Failed to open serial port on com port %s\r\n", argv[1]);
+        return -2;
+    }
 
-	// STEP 4: Connect to the RTK base (sever)
-	// Connection string follows the following format:
-	// [type]:[IP or URL]:[port]:[mountpoint]:[username]:[password]
-	// i.e. TCP:RTCM3:192.168.1.100:7777:mount:user:password
-	if ((s_clientStream = cISClient::OpenConnectionToServer(argv[2])) == NULLPTR)
-	{
-		printf("Failed to open RTK base connection %s\r\n", argv[2]);
-		return -2;
-	}
+    // STEP 4: Connect to the RTK base (sever)
+    // Connection string follows the following format:
+    // [type]:[IP or URL]:[port]:[mountpoint]:[username]:[password]
+    // i.e. TCP:RTCM3:192.168.1.100:7777:mount:user:password
+    if ((s_clientStream = cISClient::OpenConnectionToServer(argv[2])) == NULLPTR)
+    {
+        printf("Failed to open RTK base connection %s\r\n", argv[2]);
+        return -2;
+    }
 
-	int error;
+    int error;
 
-	// STEP 5: Stop any message broadcasting
-	if ((error = stop_message_broadcasting(&serialPort, &comm)))
-	{
-		return error;
-	}
+    // STEP 5: Stop any message broadcasting
+    if ((error = stop_message_broadcasting(&serialPort, &comm)))
+    {
+        return error;
+    }
 
-	// STEP 6: Enable message broadcasting
-	if ((error = enable_message_broadcasting(&serialPort, &comm)))
-	{
-		return error;
-	}
+    // STEP 6: Enable message broadcasting
+    if ((error = enable_message_broadcasting(&serialPort, &comm)))
+    {
+        return error;
+    }
 
+    // STEP 7: Enable Logger
+    
+    cISLogger::eLogType logType = (argc < 3 ? cISLogger::eLogType::LOGTYPE_DAT : cISLogger::ParseLogType(argv[3]));
+    SetLoggerEnabled(true, "", logType);
 
-	// STEP 8: Handle received data
+    // STEP 8: Handle received data
 
-	// Main loop
-	while (1)
-	{
-		read_uINS_data(&serialPort, &comm, s_clientStream);
+    // Main loop
+    while (1)
+    {
+        read_uINS_data(&serialPort, &comm, s_clientStream);
 
-		read_RTK_base_data(&serialPort, &comm, s_clientStream);
+        read_RTK_base_data(&serialPort, &comm, s_clientStream);
 
-		SLEEP_MS(1);	// sleep for 1ms, serial port reads are non-blocking
-	}
+        SLEEP_MS(1);	// sleep for 1ms, serial port reads are non-blocking
+    }
 }
 

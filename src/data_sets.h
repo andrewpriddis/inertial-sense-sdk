@@ -18,7 +18,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <time.h>
 #include <string.h>
 #include "ISConstants.h"
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -4394,8 +4393,8 @@ typedef struct PACKED
 typedef struct PACKED
 {
     uint32_t localDate;
-    float localTime;
-    float systemTime;
+    double localTime;
+    double systemTime;
     double lattitude;
     double longitude;
     double altitude;
@@ -4426,7 +4425,7 @@ typedef struct PACKED
     float vAcc; 
     float nSats; 
     float solnStatus; 
-    bool pause;
+    uint8_t pause;
 } briometrix_t;
 
 #if defined(INCLUDE_LUNA_DATA_SETS)

@@ -101,7 +101,7 @@ int enable_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *c
 {
 	// Ask for INS message w/ update 40ms period (4ms source period x 10).  Set data rate to zero to disable broadcast and pull a single packet.
 	int n;
-	n = is_comm_get_data(comm, _DID_INS_LLA_EULER_NED, 0, 0, 10);
+	n = is_comm_get_data(comm, _DID_INS_LLA_EULER_NED, 0, 0, 1);
 	if (n != serialPortWrite(serialPort, comm->buf.start, n))
 	{
 		printf("Failed to encode and write get INS message\r\n");

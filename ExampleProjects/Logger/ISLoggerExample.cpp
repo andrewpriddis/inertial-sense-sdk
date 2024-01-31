@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 {
 	if (argc < 2)
 	{
-		printf("Please pass the com port and then optionally the log type as the first two arguments (dat,sdat,csv,kml).\r\n");
+		printf("Incorrect number of arguments provided.).\r\n");
 		// In Visual Studio IDE, this can be done through "Project Properties -> Debugging -> Command Arguments: COM3 kml" 
 		return -1;
 	}
@@ -114,7 +114,12 @@ int main(int argc, char* argv[])
 		std::cout << "Failed to open com port at " << argv[1] << std::endl;
 	}
 
-
+    std::string protocol_; 
+    std::string ip_;
+    int port_; 
+    std::string mount_point_;
+    std::string username_;
+    std::string password_;
     //COnfigure as Rover with compassing
 
     //Connect to RTK Client
