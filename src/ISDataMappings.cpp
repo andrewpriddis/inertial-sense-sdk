@@ -1654,16 +1654,18 @@ static void PopulateBrioMappings(map_name_to_info_t mappings[DID_COUNT])
     ADD_MAP(m, totalSize, "rawspeedX", rawspeedX, 0, DataTypeFloat, float, 0); 
     ADD_MAP(m, totalSize, "rawSpeedY", rawSpeedY, 0, DataTypeFloat, float, 0); 
     ADD_MAP(m, totalSize, "rawSpeedZ", rawSpeedZ, 0, DataTypeFloat, float, 0); 
-    ADD_MAP(m, totalSize, "hasINS", hasINS, 0, DataTypeFloat, float, 0); 
-    ADD_MAP(m, totalSize, "hasIMU", hasIMU, 0, DataTypeFloat, float, 0); 
-    ADD_MAP(m, totalSize, "hasINS2", hasINS2, 0, DataTypeFloat, float, 0); 
-    ADD_MAP(m, totalSize, "hasGPSPosition", hasGPSPosition, 0, DataTypeFloat, float, 0); 
-    ADD_MAP(m, totalSize, "hasGPSSpeed", hasGPSSpeed, 0, DataTypeFloat, float, 0); 
+    // ADD_MAP(m, totalSize, "hasINS", hasINS, 0, DataTypeFloat, float, 0); 
+    // ADD_MAP(m, totalSize, "hasIMU", hasIMU, 0, DataTypeFloat, float, 0); 
+    // ADD_MAP(m, totalSize, "hasINS2", hasINS2, 0, DataTypeFloat, float, 0); 
+    // ADD_MAP(m, totalSize, "hasGPSPosition", hasGPSPosition, 0, DataTypeFloat, float, 0); 
+    // ADD_MAP(m, totalSize, "hasGPSSpeed", hasGPSSpeed, 0, DataTypeFloat, float, 0); 
     ADD_MAP(m, totalSize, "hAcc", hAcc, 0, DataTypeFloat, float, 0); 
     ADD_MAP(m, totalSize, "vAcc", vAcc, 0, DataTypeFloat, float, 0); 
-    ADD_MAP(m, totalSize, "nSats", nSats, 0, DataTypeFloat, float, 0); 
-    ADD_MAP(m, totalSize, "solnStatus", solnStatus, 0, DataTypeFloat, float, 0); 
-    ADD_MAP(m, totalSize, "pause", pause, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "nSats", nSats, 0, DataTypeUInt8, uint8_t, 0); 
+    // ADD_MAP(m, totalSize, "solnStatus", solnStatus, 0, DataTypeFloat, float, 0); 
+    // ADD_MAP(m, totalSize, "pause", pause, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "status", status, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "reserved", reserved, 0, DataTypeUInt16, uint16_t, 0);
 
     ASSERT_SIZE(totalSize);
 }
@@ -2647,6 +2649,7 @@ cISDataMappings::cISDataMappings()
 //    PopulateRtosInfoMappings(m_lookupInfo);
     PopulateDiagMsgMappings(m_lookupInfo);
     PopulateCanConfigMappings(m_lookupInfo);
+    PopulateBrioMappings(m_lookupInfo);
 
 #ifdef USE_IS_INTERNAL
 

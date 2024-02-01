@@ -26,7 +26,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using namespace std;
 
 static cISStream *s_clientStream;
-static cISLogger *g_logger;
+cISLogger g_logger = {};
 static briometrix_t g_brio = {};
 
 
@@ -68,6 +68,12 @@ int enable_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *c
         printf("Failed to encode and write get GPS message\r\n");
         return -5;
     }
+    n = is_comm_get_data(comm, DID_INS_1, 0, 0, 1);
+    if (n != serialPortWrite(serialPort, comm->buf.start, n))
+    {
+        printf("Failed to encode and write get GPS message\r\n");
+        return -5;
+    }
     return 0;
 }
 
@@ -83,6 +89,12 @@ void handle_uINS_data(is_comm_instance_t *comm, cISStream *clientStream)
 {
     switch (comm->dataHdr.id)
     {
+    case DID_INS_1:
+    case DID_INS_2:
+        g_brio.roll = ((ins_1_t*)comm->dataPtr)->theta[0];
+        g_brio.pitch = ((ins_1_t*)comm->dataPtr)->theta[1];
+        g_brio.yaw = ((ins_1_t*)comm->dataPtr)->theta[2];
+        break;
     case DID_GPS1_RTK_POS_REL:
         is_comm_copy_to_struct(&s_rx.rel, comm, sizeof(s_rx.rel));		
         break;
@@ -128,7 +140,7 @@ void handle_uINS_data(is_comm_instance_t *comm, cISStream *clientStream)
         }
         break;
     }
-    if (g_logger->GetType() == cISLogger::eLogType::LOGTYPE_BRIO)
+    if (g_logger.GetType() == cISLogger::eLogType::LOGTYPE_BRIO)
     {
         p_data_t packet;
         packet.hdr.id = DID_BRIO_DATA;
@@ -136,7 +148,7 @@ void handle_uINS_data(is_comm_instance_t *comm, cISStream *clientStream)
         packet.hdr.size = sizeof(briometrix_t);
         memcpy(&packet.buf, &g_brio, sizeof(briometrix_t));
 
-        g_logger->LogData(0, &packet.hdr, packet.buf);
+        g_logger.LogData(0, &packet.hdr, packet.buf);
     }
     else
     {
@@ -197,11 +209,11 @@ void read_RTK_base_data(serial_port_t* serialPort, is_comm_instance_t *comm, cIS
 
 bool EnableLogging(const string& path, cISLogger::eLogType logType, float maxDiskSpacePercent, uint32_t maxFileSize, const string& subFolder)
 {
-	if (!g_logger->InitSaveTimestamp(subFolder, path, cISLogger::g_emptyString, 1, logType, maxDiskSpacePercent, maxFileSize, subFolder.length() != 0))
+	if (!g_logger.InitSaveTimestamp(subFolder, path, cISLogger::g_emptyString, 1, logType, maxDiskSpacePercent, maxFileSize, subFolder.length() != 0))
 	{
 		return false;
 	}
-	g_logger->EnableLogging(true);
+	g_logger.EnableLogging(true);
 
 	
 	return true;

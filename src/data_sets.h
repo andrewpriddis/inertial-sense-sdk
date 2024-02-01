@@ -4416,16 +4416,11 @@ typedef struct PACKED
     float rawspeedX; 
     float rawSpeedY; 
     float rawSpeedZ; 
-    float hasINS; 
-    float hasIMU; 
-    float hasINS2; 
-    float hasGPSPosition; 
-    float hasGPSSpeed; 
     float hAcc; 
     float vAcc; 
-    float nSats; 
-    float solnStatus; 
-    uint8_t pause;
+    uint8_t nSats;
+    uint8_t status; //float hasINS;     float hasIMU;     float hasINS2;     float hasGPSPosition;     float hasGPSSpeed;     float solnStatus;     uint8_t pause;
+    uint16_t reserved;
 } briometrix_t;
 
 #if defined(INCLUDE_LUNA_DATA_SETS)
