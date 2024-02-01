@@ -56,7 +56,13 @@ int stop_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *com
 
 int enable_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *comm)
 {
-    int n = is_comm_get_data(comm, _DID_GPS1_POS, 0, 0, 1);
+    int n = is_comm_get_data(comm, DID_GPS1_POS, 0, 0, 1);
+    if (n != serialPortWrite(serialPort, comm->buf.start, n))
+    {
+        printf("Failed to encode and write get GPS message\r\n");
+        return -5;
+    }
+    n = is_comm_get_data(comm, DID_GPS1_RTK_POS, 0, 0, 1);
     if (n != serialPortWrite(serialPort, comm->buf.start, n))
     {
         printf("Failed to encode and write get GPS message\r\n");
@@ -69,6 +75,12 @@ int enable_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *c
         return -5;
     }
     n = is_comm_get_data(comm, DID_INS_1, 0, 0, 1);
+    if (n != serialPortWrite(serialPort, comm->buf.start, n))
+    {
+        printf("Failed to encode and write get GPS message\r\n");
+        return -5;
+    }
+    n = is_comm_get_data(comm, DID_IMU, 0, 0, 1);
     if (n != serialPortWrite(serialPort, comm->buf.start, n))
     {
         printf("Failed to encode and write get GPS message\r\n");
@@ -90,13 +102,50 @@ void handle_uINS_data(is_comm_instance_t *comm, cISStream *clientStream)
     switch (comm->dataHdr.id)
     {
     case DID_INS_1:
-    case DID_INS_2:
+    // case DID_INS_2:
+        g_brio.localTime = ((ins_1_t*)comm->dataPtr)->timeOfWeek; //TODO: local time from week and time of week
         g_brio.roll = ((ins_1_t*)comm->dataPtr)->theta[0];
         g_brio.pitch = ((ins_1_t*)comm->dataPtr)->theta[1];
         g_brio.yaw = ((ins_1_t*)comm->dataPtr)->theta[2];
+        g_brio.speedX = ((ins_1_t*)comm->dataPtr)->uvw[0];
+        g_brio.speedY = ((ins_1_t*)comm->dataPtr)->uvw[1];
+        g_brio.speedZ = ((ins_1_t*)comm->dataPtr)->uvw[2];
+        g_brio.lattitude = ((ins_1_t*)comm->dataPtr)->lla[0];
+        g_brio.longitude = ((ins_1_t*)comm->dataPtr)->lla[1];
+        g_brio.altitude = ((ins_1_t*)comm->dataPtr)->lla[2];
+
+    //     uint32_t localDate;
+    //     double localTime;
+    //     double systemTime;
+    //     float aX; 
+    //     float aY; 
+    //     float aZ; 
+    //     float gX; 
+    //     float gY; 
+    //     float gZ; 
+    //     float gravX; 
+    //     float gravY; 
+    //     float gravZ; 
+    //     float rawspeedX; 
+    //     float rawSpeedY; 
+    //     float rawSpeedZ; 
+    //     float hAcc; 
+    //     float vAcc; 
+    //     uint8_t nSats;
+    //     uint8_t status; //float hasINS;     float hasIMU;     float hasINS2;     float hasGPSPosition;     float hasGPSSpeed;     float solnStatus;     uint8_t pause;
+        
+
         break;
     case DID_GPS1_RTK_POS_REL:
-        is_comm_copy_to_struct(&s_rx.rel, comm, sizeof(s_rx.rel));		
+        is_comm_copy_to_struct(&s_rx.rel, comm, sizeof(s_rx.rel));
+        // g_brio.hAcc = ((gps_rtk_rel_t*)comm->dataPtr)->lla[1];
+        // g_brio.vAcc = ((gps_rtk_rel_t*)comm->dataPtr)->lla[2];
+        break;
+
+    case DID_GPS1_RTK_POS:
+        is_comm_copy_to_struct(&s_rx.rel, comm, sizeof(s_rx.rel));
+        g_brio.hAcc = ((gps_pos_t*)comm->dataPtr)->hAcc;
+        g_brio.vAcc = ((gps_pos_t*)comm->dataPtr)->vAcc;
         break;
 
     case DID_GPS1_POS:		
