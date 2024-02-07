@@ -22,6 +22,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "../../src/ISUtilities.h"
 #include "../../src/protocol_nmea.h"
 #include "../../src/ISLogger.h"
+#include "../../src/pigpio/pigpio.h"
 
 using namespace std;
 
@@ -230,6 +231,29 @@ bool SetLoggerEnabled(
 
 int main(int argc, char* argv[])
 {
+    gpioInitialise();
+
+    // Set pin 40 as an output
+    gpioSetMode(21, PI_OUTPUT);
+
+    while(1)
+    {// Drive pin 40 high
+    gpioWrite(21, 1);
+
+    // Wait for a while
+    time_sleep(1);  // Sleep for 5 seconds
+
+    // Drive pin 40 low
+    gpioWrite(21, 0);
+
+    // Wait for a while
+    time_sleep(1);  // Sleep for 5 seconds
+
+    }
+    // Release resources
+    gpioTerminate();
+    
+
     if (argc < 2)
     {
         printf("Please pass the com port, RTK base connection string, and log type as the 1st, 2nd and 3rd arguments.\r\n");
