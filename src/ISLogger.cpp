@@ -245,6 +245,7 @@ bool cISLogger::InitDevicesForWriting(int numDevices)
 			case LOGTYPE_DAT:	m_devices.push_back(make_shared<cDeviceLogSerial>());	break;
 #if !defined(PLATFORM_IS_EVB_2) || !PLATFORM_IS_EVB_2
 			case LOGTYPE_SDAT:	m_devices.push_back(make_shared<cDeviceLogSorted>());	break;
+            case LOGTYPE_BRIO:
 			case LOGTYPE_CSV:	m_devices.push_back(make_shared<cDeviceLogCSV>());		break;
 			case LOGTYPE_JSON:	m_devices.push_back(make_shared<cDeviceLogJSON>());		break;
 			case LOGTYPE_KML:	m_devices.push_back(make_shared<cDeviceLogKML>());		break;
