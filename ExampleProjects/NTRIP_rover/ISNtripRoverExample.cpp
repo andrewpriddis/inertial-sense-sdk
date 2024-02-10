@@ -257,6 +257,43 @@ void read_RTK_base_data(serial_port_t* serialPort, is_comm_instance_t *comm, cIS
     }
 }
 
+
+void write_Remote_Data(serial_port_t* serialPort, is_comm_instance_t *comm, cISStream *clientStream)
+{
+    int n = is_comm_get_data(comm, DID_GPS1_POS, 0, 0, 1);
+    if (n != serialPortWrite(serialPort, comm->buf.start, n))
+    {
+        printf("Failed to encode and write get GPS message\r\n");
+    }
+
+}
+
+void read_Remote_Data(serial_port_t* serialPort, is_comm_instance_t *comm, cISStream *clientStream)
+{
+    protocol_type_t ptype;
+
+    // Get available size of comm buffer
+    int n = is_comm_free(comm);
+
+    // Read data from RTK Base station
+    if ((n = clientStream->Read(comm->buf.tail, n)))
+    {
+        // Update comm buffer tail pointer
+        comm->buf.tail += n;
+
+        // Search comm buffer for valid packets
+        while ((ptype = is_comm_parse(comm)) != _PTYPE_NONE)
+        {
+            if (ptype == _PTYPE_RTCM3)
+            {	// Forward RTCM3 packets to uINS
+                serialPortWrite(serialPort, comm->dataPtr, comm->dataHdr.size);
+                s_rx.baseCount++;
+            }
+        }
+    }
+}
+
+
 bool EnableLogging(const string& path, cISLogger::eLogType logType, float maxDiskSpacePercent, uint32_t maxFileSize, const string& subFolder)
 {
 	if (!g_logger.InitSaveTimestamp(subFolder, path, cISLogger::g_emptyString, 1, logType, maxDiskSpacePercent, maxFileSize, subFolder.length() != 0))
@@ -297,7 +334,10 @@ int main(int argc, char* argv[])
     // Set pin 40 as an output
     gpioSetMode(21, PI_OUTPUT);
 
-    while(1)
+    //Startup LED Flash
+    int startupIndex = 0;
+
+    while(startupIndex < 5)
     {// Drive pin 40 high
     gpioWrite(21, 1);
 
@@ -309,10 +349,8 @@ int main(int argc, char* argv[])
 
     // Wait for a while
     time_sleep(1);  // Sleep for 5 seconds
-
+    startupIndex++;
     }
-    // Release resources
-    gpioTerminate();
     
 
     if (argc < 2)
@@ -323,25 +361,37 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // STEP 2: Init comm instance
-    is_comm_instance_t comm;
-    uint8_t buffer[2048];
+    // STEP 2: Init comm instances
+    is_comm_instance_t comm_IMX;
+    is_comm_instance_t comm_Remote;
+
+    uint8_t buffer_IMX[2048];
+    uint8_t buffer_Remote[20480];
 
     // Initialize the comm instance, sets up state tracking, packet parsing, etc.
-    is_comm_init(&comm, buffer, sizeof(buffer));
+    is_comm_init(&comm_IMX, buffer_IMX, sizeof(buffer_IMX));
+    is_comm_init(&comm_Remote, buffer_Remote, sizeof(buffer_Remote));
 
     // STEP 3: Initialize and open serial port
-    serial_port_t serialPort;
+    serial_port_t serialPort_IMX;
+    serial_port_t serialPort_Remote;
 
     // Initialize the serial port (Windows, MAC or Linux) - if using an embedded system like Arduino,
     //  you will need to handle the serial port creation, open and reads yourself. In this
     //  case, you do not need to include serialPort.h/.c and serialPortPlatform.h/.c in your project.
-    serialPortPlatformInit(&serialPort);
+    serialPortPlatformInit(&serialPort_IMX);
+    serialPortPlatformInit(&serialPort_Remote);
 
     // Open serial, last parameter is a 1 which means a blocking read, you can set as 0 for non-blocking
     // you can change the baudrate to a supported baud rate (IS_BAUDRATE_*), make sure to reboot the uINS
     //  if you are changing baud rates, you only need to do this when you are changing baud rates.
-    if (!serialPortOpen(&serialPort, argv[1], IS_BAUDRATE_921600, 0))
+    if (!serialPortOpen(&serialPort_IMX, argv[1], IS_BAUDRATE_921600, 0))
+    {
+        printf("Failed to open serial port on com port %s\r\n", argv[1]);
+        return -2;
+    }
+
+    if (!serialPortOpen(&serialPort_Remote, argv[1], IS_BAUDRATE_921600, 0))
     {
         printf("Failed to open serial port on com port %s\r\n", argv[1]);
         return -2;
@@ -360,13 +410,13 @@ int main(int argc, char* argv[])
     int error;
 
     // STEP 5: Stop any message broadcasting
-    if ((error = stop_message_broadcasting(&serialPort, &comm)))
+    if ((error = stop_message_broadcasting(&serialPort_IMX, &comm_IMX)))
     {
         return error;
     }
 
     // STEP 6: Enable message broadcasting
-    if ((error = enable_message_broadcasting(&serialPort, &comm)))
+    if ((error = enable_message_broadcasting(&serialPort_IMX, &comm_IMX)))
     {
         return error;
     }
@@ -381,11 +431,17 @@ int main(int argc, char* argv[])
     // Main loop
     while (1)
     {
-        read_uINS_data(&serialPort, &comm, s_clientStream);
+        read_uINS_data(&serialPort_IMX, &comm_IMX, s_clientStream);
 
-        read_RTK_base_data(&serialPort, &comm, s_clientStream);
+        read_RTK_base_data(&serialPort_IMX, &comm_IMX, s_clientStream);
+
+        write_Remote_Data(&serialPort_Remote, &comm_Remote, s_clientStream);
+
+        read_Remote_Data(&serialPort_Remote, &comm_Remote, s_clientStream);
 
         SLEEP_MS(1);	// sleep for 1ms, serial port reads are non-blocking
     }
+    // Release resources
+    gpioTerminate();
 }
 
