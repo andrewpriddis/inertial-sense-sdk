@@ -367,9 +367,9 @@ int main(int argc, char* argv[])
         return -2;
     }
 
-    if (!serialPortOpen(&serialPort_Remote, argv[1], IS_BAUDRATE_921600, 0))
+    if (!serialPortOpen(&serialPort_Remote, argv[2], IS_BAUDRATE_921600, 0))
     {
-        printf("Failed to open serial port on com port %s\r\n", argv[1]);
+        printf("Failed to open serial port on com port %s\r\n", argv[2]);
         return -2;
     }
 
@@ -377,9 +377,9 @@ int main(int argc, char* argv[])
     // Connection string follows the following format:
     // [type]:[IP or URL]:[port]:[mountpoint]:[username]:[password]
     // i.e. TCP:RTCM3:192.168.1.100:7777:mount:user:password
-    if ((s_clientStream = cISClient::OpenConnectionToServer(argv[2])) == NULLPTR)
+    if ((s_clientStream = cISClient::OpenConnectionToServer(argv[3])) == NULLPTR)
     {
-        printf("Failed to open RTK base connection %s\r\n", argv[2]);
+        printf("Failed to open RTK base connection %s\r\n", argv[3]);
         return -2;
     }
 
@@ -399,7 +399,7 @@ int main(int argc, char* argv[])
 
     // STEP 7: Enable Logger
     
-    cISLogger::eLogType logType = (argc < 3 ? cISLogger::eLogType::LOGTYPE_DAT : cISLogger::ParseLogType(argv[3]));
+    cISLogger::eLogType logType = (argc < 3 ? cISLogger::eLogType::LOGTYPE_DAT : cISLogger::ParseLogType(argv[4]));
     SetLoggerEnabled(true, "", logType);
 
     // STEP 8: Handle received data
