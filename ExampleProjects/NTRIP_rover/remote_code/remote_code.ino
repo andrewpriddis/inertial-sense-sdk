@@ -1,14 +1,19 @@
+
+
 // Define the pin numbers for the output pins
+
+
 const int outputPins[] = {2, 3, 4, 5, 6, 7, 21};
 const int inputPin = 8;
+const int tonePin = 10;
 byte pauseState = 0;
 byte receivedByte = 0xff;
-static unsigned long timer = 0;
+static unsigned long writePauseTimer = 0;
+static unsigned long toneTimer = 0;
 
 void setup()
 {
     // Initialize serial communication at 115200 baud
-    Serial.begin(115200);
 
     // Set output pins as OUTPUT
     for (int i = 0; i < 8; i++)
@@ -16,8 +21,13 @@ void setup()
         pinMode(outputPins[i], OUTPUT);
     }
     pinMode(inputPin, INPUT);
+    pinMode(tonePin, OUTPUT);
 
-    timer = millis();
+    writePauseTimer = millis();
+    toneTimer = millis();
+    tone(tonePin, 5000, 500);
+    
+    Serial.begin(115200);
 }
 
 void loop()
@@ -44,17 +54,32 @@ void loop()
             }
         }
     }
-    if ((millis() - timer) > 500)
+    if ((millis() - writePauseTimer) > 500)
     {
         if (digitalRead(inputPin))
         {
-            pauseState = 0xff;
-        }
+            pauseState = 0xff;        }
         else
         {
             pauseState = 0;
         }
         Serial.write(pauseState);
-        timer = millis();
+        writePauseTimer = millis();
+    }
+    if ((millis() - toneTimer) > 1000)
+    {
+        if (digitalRead(inputPin))
+        {
+            pauseState = 0xff;
+            tone(tonePin, 2500, 500);
+                        
+        }
+        else
+        {
+            pauseState = 0;
+            
+        }
+        Serial.write(pauseState);
+        toneTimer = millis();
     }
 }
