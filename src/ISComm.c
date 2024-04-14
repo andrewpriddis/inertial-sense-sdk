@@ -1036,7 +1036,7 @@ int is_comm_write_isb_precomp_to_buffer(uint8_t *buf, uint32_t buf_size, is_comm
 	// Update checksum using precomputed header checksum and new data
     pkt->checksum = is_comm_isb_checksum16(pkt->hdrCksum, (uint8_t*)pkt->data.ptr, pkt->data.size);
 
-	BEGIN_CRITICAL_SECTION	// Ensure entire packet gets written together
+	// BEGIN_CRITICAL_SECTION	// Ensure entire packet gets written together
 
  	// Write packet to buffer
 #define MEMCPY_INC(dst, src, size)    memcpy((dst), (src), (size)); (dst) += (size);
@@ -1048,7 +1048,7 @@ int is_comm_write_isb_precomp_to_buffer(uint8_t *buf, uint32_t buf_size, is_comm
 	MEMCPY_INC(buf, (uint8_t*)pkt->data.ptr, pkt->data.size);       // Payload
 	MEMCPY_INC(buf, (uint8_t*)&(pkt->checksum), 2);                 // Footer (checksum)
 
-	END_CRITICAL_SECTION
+	// END_CRITICAL_SECTION
 
 	// Increment Tx count
 	comm->txPktCount++;
@@ -1062,7 +1062,7 @@ int is_comm_write_isb_precomp_to_port(pfnIsCommPortWrite portWrite, int port, is
 	// Compute checksum using precomputed header checksum
     pkt->checksum = is_comm_isb_checksum16(pkt->hdrCksum, (uint8_t*)pkt->data.ptr, pkt->data.size);
 
-	BEGIN_CRITICAL_SECTION	// Ensure entire packet gets written together
+	// BEGIN_CRITICAL_SECTION	// Ensure entire packet gets written together
 
  	// Write packet to port
 	int n = portWrite(port, (uint8_t*)&(pkt->hdr), sizeof(packet_hdr_t));  // Header
@@ -1076,7 +1076,7 @@ int is_comm_write_isb_precomp_to_port(pfnIsCommPortWrite portWrite, int port, is
     }
 	n += portWrite(port, (uint8_t*)&(pkt->checksum), 2);                   // Footer (checksum)
 
-	END_CRITICAL_SECTION
+	// END_CRITICAL_SECTION
 
 	// Increment Tx count
 	comm->txPktCount++;
