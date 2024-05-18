@@ -12,7 +12,7 @@
 #define NFREQ       2       // Number of carrier frequencies
 #define NEXOBS      0       // Number of extended obs codes
 
-#define L1_L5_RTK   1		// Use second slot for L5 
+#define L1_L5_RTK   0		// Use second slot for L5 
 
 // #if defined(RTK_EMBEDDED)
 // #include "data_sets.h"
