@@ -2216,29 +2216,35 @@ typedef struct PACKED
     float                   bias_cal[3];
 } inl2_mag_obs_info_t;
 
+/** Built-in Test: Input Command */
+enum eBitCommand
+{
+    BIT_CMD_NONE                                    = (int)0,       // No command
+    BIT_CMD_OFF                                     = (int)1,       // Stop built-in test
+    BIT_CMD_FULL_STATIONARY                         = (int)2,       // (FULL) Comprehensive test.  Requires system be completely stationary without vibrations. 
+    BIT_CMD_BASIC_MOVING                            = (int)3,       // (BASIC) Ignores sensor output.  Can be run while moving.  This mode is automatically run after bootup.
+    BIT_CMD_FULL_STATIONARY_HIGH_ACCURACY           = (int)4,       // Same as BIT_CMD_FULL_STATIONARY but with higher requirements for accuracy.  In order to pass, this test may require the Infield Calibration (DID_INFIELD_CAL) to be run. 
+    BIT_CMD_RESERVED_2                              = (int)5,   
+};
+
 /** Built-in Test: State */
 enum eBitState
 {
-    BIT_STATE_OFF					                    = (int)0,
-    BIT_STATE_DONE				                        = (int)1,       // Test is finished
-    BIT_STATE_CMD_FULL_STATIONARY                       = (int)2,       // (FULL) Comprehensive test.  Requires system be completely stationary without vibrations. 
-    BIT_STATE_CMD_BASIC_MOVING                          = (int)3,       // (BASIC) Ignores sensor output.  Can be run while moving.  This mode is automatically run after bootup.
-    BIT_STATE_CMD_FULL_STATIONARY_HIGH_ACCURACY         = (int)4,       // Same as BIT_STATE_CMD_FULL_STATIONARY but with higher requirements for accuracy.  In order to pass, this test may require the Infield Calibration (DID_INFIELD_CAL) to be run. 
-    BIT_STATE_RESERVED_2                                = (int)5,   
-    BIT_STATE_RUNNING                                   = (int)6,   
-    BIT_STATE_FINISHING                                 = (int)7,	    // Computing results
-    BIT_STATE_CMD_OFF                                   = (int)8,       // Stop built-in test
+    BIT_STATE_OFF					                = (int)0,
+    BIT_STATE_DONE				                    = (int)1,       // Test is finished
+    BIT_STATE_RUNNING                               = (int)6,
+    BIT_STATE_FINISHING                             = (int)7,	    // Computing results
 };
 
 /** Built-in Test: Test Mode */
 enum eBitTestMode
 {
-    BIT_TEST_MODE_FAILED                                = (int)98,      // Test mode ran and failed
-    BIT_TEST_MODE_DONE                                  = (int)99,      // Test mode ran and completed
-    BIT_TEST_MODE_SIM_GPS_NOISE                         = (int)100,     // Simulate CNO noise
-    BIT_TEST_MODE_COMMUNICATIONS_REPEAT                 = (int)101,     // Send duplicate message 
-    BIT_TEST_MODE_SERIAL_DRIVER_RX_OVERFLOW             = (int)102,     // Cause Rx buffer overflow on current serial port by blocking date read until the overflow occurs.
-    BIT_TEST_MODE_SERIAL_DRIVER_TX_OVERFLOW             = (int)103,     // Cause Tx buffer overflow on current serial port by sending too much data.
+    BIT_TEST_MODE_FAILED                            = (int)98,      // Test mode ran and failed
+    BIT_TEST_MODE_DONE                              = (int)99,      // Test mode ran and completed
+    BIT_TEST_MODE_SIM_GPS_NOISE                     = (int)100,     // Simulate CNO noise
+    BIT_TEST_MODE_COMMUNICATIONS_REPEAT             = (int)101,     // Send duplicate message 
+    BIT_TEST_MODE_SERIAL_DRIVER_RX_OVERFLOW         = (int)102,     // Cause Rx buffer overflow on current serial port by blocking date read until the overflow occurs.
+    BIT_TEST_MODE_SERIAL_DRIVER_TX_OVERFLOW         = (int)103,     // Cause Tx buffer overflow on current serial port by sending too much data.
 };
 
 /** Hardware built-in test (BIT) flags */
@@ -2294,11 +2300,20 @@ enum eCalBitStatusFlags
 };
 
 
-/** (DID_BIT) Built-in self-test parameters */
+/** (DID_BIT) Built-in self-test (BIT) parameters */
 typedef struct PACKED
 {
-    /** Built-in self-test state (see eBitState) */
-    uint32_t                state;
+    /** BIT input command (see eBitCommand).  Ignored when zero.  */
+    uint8_t                 command;
+
+    /** BIT last input command (see eBitCommand) */
+    uint8_t                 lastCommand;
+
+    /** BIT current state (see eBitState) */
+    uint8_t                 state;
+
+    /** Unused */
+    uint8_t                 reserved;
 
     /** Hardware BIT status (see eHdwBitStatusFlags) */
     uint32_t                hdwBitStatus;
@@ -3477,10 +3492,17 @@ typedef struct PACKED
     uint8_t obs_count_bas;
     uint8_t obs_count_rov;
 
-    uint8_t obs_pairs_filtered;
-    uint8_t obs_pairs_used;
+    uint8_t obs_pairs_filtered;  // number of satellites used to compute float solution [nu, nr in relpos() after selsat()]. Min is 0, max is number of common pairs between obs_rover_avail and obs_base_avail.
+    uint8_t obs_pairs_used;      // number of observation pairs (all frequencies) used to compute the integer (fixed) solution
     uint8_t raw_ptr_queue_overrun;
     uint8_t raw_dat_queue_overrun;
+
+    uint8_t obs_rover_avail; // nu - total number of satellites with observations to rover in relpos() before selsat()
+    uint8_t obs_base_avail;  // nr - total number of satellites with observations to base in relpos() before selsat()
+    uint8_t obs_eph_avail;   // number of satellites with ephemeris available (min is 0, max is nu)
+    uint8_t obs_unhealthy;   // number of satellites marked as "unhealthy" by rover (nonzero terms in svh)
+
+    uint8_t reserved[4];
 } rtk_debug_t;
 
 POP_PACK
@@ -4778,6 +4800,30 @@ typedef struct
         
 } port_monitor_t;
 
+/** Stores data for the event mask */
+typedef struct
+{
+    /** Prioity mask (see eEventPriority) */
+    uint8_t priorityMask;
+      
+    /** ID mask field (see eEventProtocol ie 0x01 << eEventProtocol) */
+    uint32_t idMask;
+} did_event_mask_t;
+
+/** Sent in the data field of DID_EVENT for eEventProtocol:
+ *  EVENT_PROTOCOL_ENA_GNSS1_FILTER,
+ *  EVENT_PROTOCOL_ENA_GNSS2_FILTER,
+ *  EVENT_PROTOCOL_ENA_FILTER 
+*/
+typedef struct
+{
+    /**target port mask 0x80 for current port other port (0x01 << TARGET_PORT) where target port is */
+    uint8_t portMask;
+
+    did_event_mask_t eventMask;
+
+} did_event_filter_t;
+
 enum eEventProtocol
 {
     EVENT_PROTOCOL_RAW              = 1,
@@ -4787,6 +4833,11 @@ enum eEventProtocol
     EVENT_PROTOCOL_RTMC3_EXT        = 13,
     EVENT_PROTOCOL_SONY_BIN_RCVR1   = 14,
     EVENT_PROTOCOL_SONY_BIN_RCVR2   = 15,
+
+    EVENT_PROTOCOL_FILTER_RESPONSE  = (uint16_t)-4,
+    EVENT_PROTOCOL_ENA_GNSS1_FILTER = (uint16_t)-3,
+    EVENT_PROTOCOL_ENA_GNSS2_FILTER = (uint16_t)-2,
+    EVENT_PROTOCOL_ENA_FILTER       = (uint16_t)-1,
 };
 
 enum eEventPriority
@@ -4812,9 +4863,11 @@ typedef struct
     /** Hardware: 0=Host, 1=uINS, 2=EVB, 3=IMX, 4=GPX (see "Product Hardware ID") */
     uint16_t        senderHdwId;
     
+    /** see eEventPriority */
     uint8_t         priority;
     uint8_t         res8;
 
+    /** see eEventProtocol */
     uint16_t        protocol;
     uint16_t        length;
     
