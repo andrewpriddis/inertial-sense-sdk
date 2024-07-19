@@ -1483,7 +1483,7 @@ class logPlot:
                     # new data
                     t1 = np.append(t1, t_)
             gps1_data = np.asarray(gps1_data, dtype = object) # newer Numpy can't delete inhomogeneous arrays unless we set dtype=object
-            gps1_data = np.delete(gps1_data, del_ind)
+            gps1_data = np.delete(gps1_data, del_ind, axis=0)
 
             t2 = np.empty(0)
             del_ind = np.empty(0, dtype=int)
@@ -1504,7 +1504,7 @@ class logPlot:
                     # new data
                     t2 = np.append(t2, t_)
             gps2_data = np.asarray(gps2_data, dtype = object) # newer Numpy can't delete inhomogeneous arrays unless we set dtype=object
-            gps2_data = np.delete(gps2_data, del_ind)
+            gps2_data = np.delete(gps2_data, del_ind, axis=0)
 
             N1 = len(gps1_data)
             N2 = len(gps2_data)
