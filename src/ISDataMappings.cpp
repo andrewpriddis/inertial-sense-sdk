@@ -159,12 +159,17 @@ static void PopulateSizeMappings(uint32_t sizeMap[DID_COUNT])
     sizeMap[DID_EVB_RTOS_INFO] = sizeof(evb_rtos_info_t);
     sizeMap[DID_EVB_DEV_INFO] = sizeof(dev_info_t);
 
+    sizeMap[DID_EVENT] = sizeof(did_event_t);
+
     sizeMap[DID_GPX_DEV_INFO] = sizeof(dev_info_t);
     sizeMap[DID_GPX_STATUS] = sizeof(gpx_status_t);
     sizeMap[DID_GPX_FLASH_CFG] = sizeof(gpx_flash_cfg_t);
     sizeMap[DID_GPX_RTOS_INFO] = sizeof(gpx_rtos_info_t);
     sizeMap[DID_GPX_DEBUG_ARRAY] = sizeof(debug_array_t);
+    sizeMap[DID_GPX_BIT] = sizeof(gpx_bit_t);
     sizeMap[DID_GPX_RMC] = sizeof(rmc_t);
+    sizeMap[DID_GPX_PORT_MONITOR] = sizeof(port_monitor_t);
+    
 
 #ifdef USE_IS_INTERNAL
 
@@ -231,7 +236,8 @@ static void PopulateDeviceInfoMappings(map_name_to_info_t mappings[DID_COUNT], u
     map_name_to_info_t& m = mappings[id];
     uint32_t totalSize = 0;
     ADD_MAP(m, totalSize, "reserved", reserved, 0, DataTypeUInt16, uint16_t, 0);
-    ADD_MAP(m, totalSize, "hardware", hardware, 0, DataTypeUInt16, uint16_t, 0);
+    ADD_MAP(m, totalSize, "reserved2", reserved2, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "hardwareType", hardwareType, 0, DataTypeUInt8, uint8_t, 0);
     ADD_MAP(m, totalSize, "serialNumber", serialNumber, 0, DataTypeUInt32, uint32_t, 0);
     ADD_MAP(m, totalSize, "hardwareVer[0]", hardwareVer[0], 0, DataTypeUInt8, uint8_t&, 0);
     ADD_MAP(m, totalSize, "hardwareVer[1]", hardwareVer[1], 0, DataTypeUInt8, uint8_t&, 0);
@@ -302,7 +308,11 @@ static void PopulateBitMappings(map_name_to_info_t mappings[DID_COUNT])
     typedef bit_t MAP_TYPE;
     map_name_to_info_t& m = mappings[DID_BIT];
     uint32_t totalSize = 0;
-    ADD_MAP(m, totalSize, "state", state, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "command", command, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "lastCommand", lastCommand, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "state", state, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "reserved", reserved, 0, DataTypeUInt8, uint8_t, 0);
+
     ADD_MAP(m, totalSize, "hdwBitStatus", hdwBitStatus, 0, DataTypeUInt32, uint32_t, 0);
     ADD_MAP(m, totalSize, "calBitStatus", calBitStatus, 0, DataTypeUInt32, uint32_t, 0);
 
@@ -318,7 +328,27 @@ static void PopulateBitMappings(map_name_to_info_t mappings[DID_COUNT])
     ADD_MAP(m, totalSize, "pqrSigma", pqrSigma, 0, DataTypeFloat, float, 0);
     ADD_MAP(m, totalSize, "accSigma", accSigma, 0, DataTypeFloat, float, 0);
 
-    ADD_MAP(m, totalSize, "testMode", testMode, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "testMode", testMode, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "testVar", testVar, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "detectedHardwareId", detectedHardwareId, 0, DataTypeUInt16, uint16_t, 0);
+
+    ASSERT_SIZE(totalSize);
+}
+
+static void PopulateGpxBitMappings(map_name_to_info_t mappings[DID_COUNT])
+{
+    typedef gpx_bit_t MAP_TYPE;
+    map_name_to_info_t& m = mappings[DID_GPX_BIT];
+    uint32_t totalSize = 0;
+
+    ADD_MAP(m, totalSize, "results", results, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "command", command, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "port", port, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "testMode", testMode, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "state", state, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "detectedHardwareId", detectedHardwareId, 0, DataTypeUInt16, uint16_t, 0);
+    ADD_MAP(m, totalSize, "reserved[0]", reserved[0], 0, DataTypeUInt8, uint8_t&, 0);
+    ADD_MAP(m, totalSize, "reserved[1]", reserved[1], 0, DataTypeUInt8, uint8_t&, 0);
 
     ASSERT_SIZE(totalSize);
 }
@@ -404,6 +434,7 @@ static void PopulateSysParamsMappings(map_name_to_info_t mappings[DID_COUNT])
     ADD_MAP(m, totalSize, "flashCfgChecksum", flashCfgChecksum, 0, DataTypeUInt32, uint32_t, 0);
     ADD_MAP(m, totalSize, "navUpdatePeriodMs", navUpdatePeriodMs, 0, DataTypeUInt32, uint32_t, 0);
     ADD_MAP(m, totalSize, "genFaultCode", genFaultCode, 0, DataTypeUInt32, uint32_t, DataFlagsDisplayHex);
+    ADD_MAP(m, totalSize, "upTime", upTime, 0, DataTypeDouble, double, 0);
 
     ASSERT_SIZE(totalSize);
 }
@@ -1064,6 +1095,28 @@ static void PopulateFlashConfigMappings(map_name_to_info_t mappings[DID_COUNT])
     ASSERT_SIZE(totalSize);
 }
 
+/**
+ * Maps DID_EVENT for SDK
+*/
+static void PopulateISEventMappings(map_name_to_info_t mappings[DID_COUNT])
+{
+     typedef did_event_t MAP_TYPE;
+    map_name_to_info_t& m = mappings[DID_EVENT];
+    uint32_t totalSize = 0;
+
+
+    ADD_MAP(m, totalSize, "Time stamp of message (System Up seconds)", time, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "Senders serial number", senderSN, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "Sender hardware type", senderHdwId, 0, DataTypeUInt16, uint16_t, 0);
+
+    ADD_MAP(m, totalSize, "Message ID", msgTypeID, 0, DataTypeUInt16, uint16_t, 0);
+    ADD_MAP(m, totalSize, "Priority", priority, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "Length", length, 0, DataTypeUInt16, uint16_t, 0);
+    ADD_MAP(m, totalSize, "data", data, 0, DataTypeString, uint8_t[MEMBERSIZE(MAP_TYPE, data)], 0);
+
+    ADD_MAP(m, totalSize, "Reserved 8 bit", res8, 0, DataTypeUInt8, uint8_t, 0);
+}
+
 static void PopulateGpxFlashCfgMappings(map_name_to_info_t mappings[DID_COUNT])
 {
     typedef gpx_flash_cfg_t MAP_TYPE;
@@ -1115,6 +1168,8 @@ static void PopulateGpxStatusMappings(map_name_to_info_t mappings[DID_COUNT])
     ADD_MAP(m, totalSize, "rtkMode", rtkMode, 0, DataTypeUInt32, uint32_t, 0);
     ADD_MAP(m, totalSize, "gnss1RunState", gnss1RunState, 0, DataTypeUInt32, uint32_t, 0);
     ADD_MAP(m, totalSize, "gnss2RunState", gnss2RunState, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "SourcePort", gpxSourcePort, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "upTime", upTime, 0, DataTypeDouble, double, 0);
 }
 
 static void PopulateEvbStatusMappings(map_name_to_info_t mappings[DID_COUNT])
@@ -2280,10 +2335,32 @@ static void PopulateRtkDebugMappings(map_name_to_info_t mappings[DID_COUNT])
     ADD_MAP(m, totalSize, "obs_count_bas", obs_count_bas, 0, DataTypeUInt8, uint8_t, 0);
     ADD_MAP(m, totalSize, "obs_count_rov", obs_count_rov, 0, DataTypeUInt8, uint8_t, 0);
 
-    ADD_MAP(m, totalSize, "obs_pairs_filtered", obs_pairs_filtered, 0, DataTypeUInt8, uint8_t, 0);
-    ADD_MAP(m, totalSize, "obs_pairs_used", obs_pairs_used, 0, DataTypeUInt8, uint8_t, 0);
+    //ADD_MAP(m, totalSize, "obs_pairs_filtered", obs_pairs_filtered, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "reserved2", reserved2, 0, DataTypeUInt8, uint8_t, 0);
     ADD_MAP(m, totalSize, "raw_ptr_queue_overrun", raw_ptr_queue_overrun, 0, DataTypeUInt8, uint8_t, 0);
     ADD_MAP(m, totalSize, "raw_dat_queue_overrun", raw_dat_queue_overrun, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_unhealthy", obs_unhealthy, 0, DataTypeUInt8, uint8_t, 0);
+
+    ADD_MAP(m, totalSize, "obs_rover_avail", obs_rover_avail, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_base_avail", obs_base_avail, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_pairs_used_float", obs_pairs_used_float, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_pairs_used_ar", obs_pairs_used_ar, 0, DataTypeUInt8, uint8_t, 0);
+
+    ADD_MAP(m, totalSize, "obs_eph_avail", obs_eph_avail, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_low_snr_rover", obs_low_snr_rover, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_low_snr_base", obs_low_snr_base, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_high_snr_parity", obs_high_snr_parity, 0, DataTypeUInt8, uint8_t, 0);
+
+    ADD_MAP(m, totalSize, "obs_zero_L1_rover", obs_zero_L1_rover, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_zero_L1_base", obs_zero_L1_base, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_low_elev_rover", obs_low_elev_rover, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "obs_low_elev_base", obs_low_elev_base, 0, DataTypeUInt8, uint8_t, 0);
+
+    ADD_MAP(m, totalSize, "eph1RxCnt", eph1RxCnt, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "eph2RxCnt", eph2RxCnt, 0, DataTypeUInt8, uint8_t, 0);
+
+    ADD_MAP(m, totalSize, "reserved[0]", reserved[0], 0, DataTypeUInt8, uint8_t&, 0);
+    ADD_MAP(m, totalSize, "reserved[1]", reserved[1], 0, DataTypeUInt8, uint8_t&, 0);
 
     ASSERT_SIZE(totalSize);
 }
@@ -2504,7 +2581,7 @@ const char* const cISDataMappings::m_dataIdNames[] =
     "DID_GPS1_VERSION",                 // 17
     "DID_GPS2_VERSION",                 // 18
     "DID_MAG_CAL",                      // 19
-    "DID_INTERNAL_DIAGNOSTIC",          // 20
+    "DID_UNUSED_20",                    // 20
     "DID_GPS1_RTK_POS_REL",             // 21
     "DID_GPS1_RTK_POS_MISC",            // 22
     "DID_FEATURE_BITS",                 // 23
@@ -2603,7 +2680,7 @@ const char* const cISDataMappings::m_dataIdNames[] =
     "DID_EVB_LUNA_AUX_COMMAND",         // 116
     "",                                 // 117
     "",                                 // 118
-    "",                                 // 119
+    "DID_EVENT",                        // 119
     "DID_GPX_DEV_INFO",                 // 120
     "DID_GPX_FLASH_CFG",                // 121
     "DID_GPX_RTOS_INFO",                // 122
@@ -2611,7 +2688,7 @@ const char* const cISDataMappings::m_dataIdNames[] =
     "DID_GPX_DEBUG_ARRAY",              // 124
     "DID_GPX_BIT",                      // 125
     "DID_GPX_RMC",                      // 126
-    "",                                 // 127
+    "DID_GPX_PORT_MONITOR",             // 127
     "",                                 // 128
     "",                                 // 129
     "",                                 // 130
@@ -2625,6 +2702,7 @@ cISDataMappings::cISDataMappings()
     PopulateDeviceInfoMappings(m_lookupInfo, DID_DEV_INFO);
     PopulateManufacturingInfoMappings(m_lookupInfo);
     PopulateBitMappings(m_lookupInfo);
+    PopulateGpxBitMappings(m_lookupInfo);
     PopulateSysFaultMappings(m_lookupInfo);
     PopulateIMU3Mappings(m_lookupInfo, DID_IMU3_UNCAL);
     PopulateIMU3Mappings(m_lookupInfo, DID_IMU3_RAW);
@@ -2674,10 +2752,11 @@ cISDataMappings::cISDataMappings()
     PopulateIMUDeltaThetaVelocityMappings(m_lookupInfo, DID_REFERENCE_PIMU);
     PopulateInfieldCalMappings(m_lookupInfo);
 
+    PopulateISEventMappings(m_lookupInfo);
+
     PopulateDeviceInfoMappings(m_lookupInfo, DID_GPX_DEV_INFO);
     PopulateGpxFlashCfgMappings(m_lookupInfo);
     // DID_GPX_RTOS_INFO
-    // DID_GPX_STATUS
     PopulateGpxStatusMappings(m_lookupInfo);
     PopulateDebugArrayMappings(m_lookupInfo, DID_GPX_DEBUG_ARRAY);
 

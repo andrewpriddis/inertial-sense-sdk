@@ -11,6 +11,8 @@ file(GLOB SOURCES_SDK
     "src/util/*.cpp"
     "src/util/*.h"
 	"hw-libs/bootloader/bootloaderShared.c"
+    "tests/runtime/*.cpp"
+    "tests/runtime/*.h"
 	"src/yaml-cpp/*.cpp"
 	"src/yaml-cpp/*.h"
 	"src/yaml-cpp/contrib/*.cpp"
@@ -55,12 +57,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	src/libusb
 	src/libusb/libusb
 	src/yaml-cpp
+	tests/runtime
 	external
 )
 
 # Build using C11 and CXX20
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Other settings
 if(WIN32)

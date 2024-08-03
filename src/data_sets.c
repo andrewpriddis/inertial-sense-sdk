@@ -14,6 +14,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stddef.h>
 #include <math.h>
 
+const char* g_isHardwareTypeNames[IS_HARDWARE_TYPE_COUNT] = {"UNKNOWN", "uINS", "EVB", "IMX", "GPX"};
+
 // Reversed bytes in a float.
 // compiler will likely inline this as it's a tiny function
 void flipFloat(uint8_t* ptr)
@@ -282,7 +284,7 @@ uint16_t* getDoubleOffsets(eDataIDs dataId, uint16_t* offsetsLength)
 		0,                      // 17: DID_GPS1_VERSION
 		0,						// 18: DID_GPS2_VERSION
 		0,						// 19: DID_MAG_CAL
-		0,						// 20: DID_INTERNAL_DIAGNOSTIC
+		0,						// 20: DID_UNUSED_20
         0,                      // 21: DID_GPS1_RTK_POS_REL
         offsetsRtkNav,          // 22: DID_GPS1_RTK_POS_MISC
 		0,						// 23: DID_FEATURE_BITS
@@ -472,7 +474,7 @@ uint16_t* getStringOffsetsLengths(eDataIDs dataId, uint16_t* offsetsLength)
 		0,						// 17: DID_GPS1_VERSION
 		0,						// 18: DID_GPS2_VERSION
 		0,						// 19: DID_MAG_CAL
-		0,						// 20: DID_INTERNAL_DIAGNOSTIC
+		0,						// 20: DID_UNUSED_20
         0,                      // 21: DID_GPS1_RTK_POS_REL
         0,                      // 22: DID_GPS1_RTK_POS_MISC,
 		0,						// 23: DID_FEATURE_BITS
@@ -674,13 +676,15 @@ const uint64_t g_didToRmcBit[DID_COUNT] =
 	[DID_GROUND_VEHICLE]      = RMC_BITS_GROUND_VEHICLE,
 	[DID_IMU_MAG]             = RMC_BITS_IMU_MAG,
 	[DID_PIMU_MAG]            = RMC_BITS_PIMU_MAG,
+	[DID_EVENT]            	  = RMC_BITS_EVENT,
 	[DID_GPX_STATUS]          = RMC_BITS_GPX_STATUS,
 	[DID_GPX_RTOS_INFO]       = RMC_BITS_GPX_RTOS_INFO,
 	[DID_GPX_DEBUG_ARRAY]     = RMC_BITS_GPX_DEBUG,
 	[DID_GPX_DEV_INFO]        = RMC_BITS_GPX_DEV_INFO,
 	[DID_GPX_FLASH_CFG]       = RMC_BITS_GPX_FLASH_CFG,
 	[DID_GPX_RMC]			  = RMC_BITS_GPX_RMC,
-	[DID_GPX_BIT]			  = RMC_BITS_GPX_BIT
+	[DID_GPX_BIT]			  = RMC_BITS_GPX_BIT,
+	[DID_GPX_PORT_MONITOR]	  = RMC_BITS_GPX_PORT_MON,
 };
 
 uint64_t didToRmcBit(uint32_t dataId, uint64_t defaultRmcBits, uint64_t devInfoRmcBits)
@@ -737,6 +741,9 @@ const uint64_t g_gpxDidToGrmcBit[DID_COUNT] =
     [DID_GPS1_RTK_POS_REL]       = GMRC_BITS_GPS1_RTK_POS_REL,
     [DID_GPS2_RTK_CMP_MISC]      = GMRC_BITS_GPS2_RTK_CMP_MISC,
     [DID_GPS2_RTK_CMP_REL]       = GMRC_BITS_GPS2_RTK_CMP_REL,
+    [DID_RTK_DEBUG]	             = GMRC_BITS_DID_RTK_DEBUG,
+    [DID_PORT_MONITOR]           = GMRC_BITS_PORT_MON,
+    [DID_GPX_PORT_MONITOR]       = GMRC_BITS_GPX_PORT_MON,
 };
 
 const uint16_t g_gpxGRMCPresetLookup[GRMC_BIT_POS_COUNT] =
@@ -762,7 +769,8 @@ const uint16_t g_gpxGRMCPresetLookup[GRMC_BIT_POS_COUNT] =
     [GMRC_BIT_POS_GPS1_RTK_POS_MISC]    = 1,
     [GMRC_BIT_POS_GPS1_RTK_POS_REL]     = 1,
     [GMRC_BIT_POS_GPS2_RTK_CMP_MISC]    = 1,
-    [GMRC_BIT_POS_GPS2_RTK_CMP_REL]     = 1,    
+    [GMRC_BIT_POS_GPS2_RTK_CMP_REL]     = 1, 
+    [GMRC_BIT_POS_DID_RTK_DEBUG]     	= GRMC_PRESET_DID_RTK_DEBUG_PERIOD_MS,    
 };
 
 #ifndef GPX_1
@@ -874,7 +882,7 @@ void profiler_maintenance_1s(runtime_profiler_t *p)
 /** Populate missing hardware descriptor in dev_info_t */ 
 void devInfoPopulateMissingHardware(dev_info_t *devInfo)
 {
-	if (devInfo->hardware != DEV_INFO_HARDWARE_UNSPECIFIED)
+	if (devInfo->hardwareType != IS_HARDWARE_TYPE_UNKNOWN)
 	{	// Hardware type is not missing
 		return;
 	}
@@ -884,9 +892,9 @@ void devInfoPopulateMissingHardware(dev_info_t *devInfo)
 	{	// Hardware from 2024 and earlier is detectible using hardware version
 		switch (devInfo->hardwareVer[0])	
 		{
-		case 2: devInfo->hardware = DEV_INFO_HARDWARE_EVB;  break;
-		case 3: devInfo->hardware = DEV_INFO_HARDWARE_UINS; break;
-		case 5: devInfo->hardware = DEV_INFO_HARDWARE_IMX;  break;
+		case 2: devInfo->hardwareType = IS_HARDWARE_TYPE_EVB;  break;
+		case 3: devInfo->hardwareType = IS_HARDWARE_TYPE_UINS; break;
+		case 5: devInfo->hardwareType = IS_HARDWARE_TYPE_IMX;  break;
 		}
 	}
 }

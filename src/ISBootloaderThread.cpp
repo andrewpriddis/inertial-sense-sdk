@@ -724,7 +724,7 @@ is_operation_result cISBootloaderThread::update(
     m_timeStart = current_timeMs();
 
     ////////////////////////////////////////////////////////////////////////////
-    // Run `mode_thread_serial_isb` to put all ISB devices into ROM-bootloader (DFU/SAM-BA) mode
+    // Run `mode_thread_serial_isb` to put all ISB devices into ROM-bootloader (DFU/SAM-BA) mode if necessary
     ////////////////////////////////////////////////////////////////////////////
     struct timeval start;
     gettimeofday(&start, NULL);

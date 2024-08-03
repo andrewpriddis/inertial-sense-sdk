@@ -64,7 +64,7 @@ ext_modules = [
          '../../src/protocol_nmea.cpp',
          '../../src/serialPort.c',
          '../../src/serialPortPlatform.c',
-         '../../src/time_conversion.c',
+         '../../src/time_conversion.cpp',
          '../../src/tinystr.cpp',
          '../../src/tinyxml.cpp',
          '../../src/tinyxmlerror.cpp',
@@ -102,12 +102,12 @@ def has_flag(compiler, flagname):
 
 
 def cpp_flag(compiler):
-    """Return the -std=c++[11/14] compiler flag.
+    """Return the -std=c++[11/17] compiler flag.
 
-    The c++14 is prefered over c++11 (when it is available).
+    The c++17 is prefered over c++11 (when it is available).
     """
-    if has_flag(compiler, '-std=c++14'):
-        return '-std=c++14'
+    if has_flag(compiler, '-std=c++17'):
+        return '-std=c++17'
     elif has_flag(compiler, '-std=c++11'):
         return '-std=c++11'
     else:
@@ -148,7 +148,7 @@ setup(
     long_description='',
     ext_modules=ext_modules,
     install_requires=[
-        'allantools',
+        'allantools<=2019.9',
         'matplotlib', 
         'numpy', 
         'pandas',
@@ -159,6 +159,7 @@ setup(
         'scipy', 
         'simplekml',
         'tqdm'],
+    setup_requires=['pybind11>=2.2'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )

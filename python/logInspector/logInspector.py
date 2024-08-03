@@ -8,6 +8,9 @@ from PyQt5.QtWidgets import QWidget, QDialog, QApplication, QPushButton, QVBoxLa
 from PyQt5.QtGui import QMovie, QIcon, QPixmap, QImage, QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QItemSelectionModel
 
+import matplotlib
+matplotlib.use('Agg')
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
@@ -85,18 +88,21 @@ def setDataInformationDirectory(path, startMode=START_MODE_HOT):
         data['dataInfo']['dataDirectory'] = os.path.dirname(path).replace('\\','/')
         data['dataInfo']['subDirectories'] = [os.path.basename(path)]
         serialnumbers = []
+        logtype = 'DAT'
         for root, dirs, files in os.walk(path):
             for filename in files:
                 if "LOG_SN" in filename:
-                    serialnum = filename[4:11]
+                    serialnum = re.search(r'\d+', filename).group()
                     if serialnum not in serialnumbers:
                         serialnumbers += [serialnum]
+                if ".raw" in filename.lower():
+                    logtype = "RAW"
 
         data['processData'] = {}
         data['processData']['datasets'] = [{}]
         data['processData']['datasets'][0]['SerialNumbers'] = serialnumbers
         data['processData']['datasets'][0]['folder'] = os.path.basename(path)
-        data['processData']['datasets'][0]['logType'] = 'DAT'
+        data['processData']['datasets'][0]['logType'] = logtype
         if startMode == START_MODE_HOT:
             data['processData']['datasets'][0]['startMode'] = 'HOT'
         elif startMode == START_MODE_COLD:
@@ -118,7 +124,7 @@ def dateTimeArrayToString(info):
     hour   = info['buildHour']
     minute = info['buildMinute']
     second = info['buildSecond']
-    return str(year+2000) + '-' + f'{month:02}' + '-' + f'{day:02}' + ' ' + f'{hour:02}' + ':' + f'{minute:02}' + ':' + f'{second:02}'
+    return str(int(year)+2000) + '-' + f'{month:02}' + '-' + f'{day:02}' + ' ' + f'{hour:02}' + ':' + f'{minute:02}' + ':' + f'{second:02}'
 
 class DeviceInfoDialog(QDialog):
 
@@ -548,6 +554,7 @@ class LogInspectorWindow(QMainWindow):
         downsampleLabel = QLabel()
         downsampleLabel.setText("DS")
         self.downSampleInput = QSpinBox()
+        self.downSampleInput.setMinimum(1)
         self.downSampleInput.setValue(self.downsample)
         self.toolLayout.addWidget(downsampleLabel)
         self.toolLayout.addWidget(self.downSampleInput)
@@ -576,7 +583,7 @@ class LogInspectorWindow(QMainWindow):
         self.plotter.save = False
 
     def changeDownSample(self, val):
-        self.downsample = val
+        self.downsample = max(val, 1)
         self.plotter.setDownSample(self.downsample)
         self.updatePlot()
 

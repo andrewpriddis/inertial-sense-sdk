@@ -24,6 +24,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "ISDisplay.h"
 #include "ISUtilities.h"
 #include "ISBootloaderBase.h"
+#include "util/util.h"
 
 #define APP_NAME                "cltool"
 #if PLATFORM_IS_WINDOWS
@@ -50,6 +51,21 @@ typedef struct
 	int			periodMultiple;
 } stream_did_t;
 
+typedef struct
+{
+	did_event_filter_t evFilter;
+	uint16_t dest;
+	bool sendEVF;
+} EVFContainer_t;
+
+typedef struct
+{
+	std::string inFile;
+	std::string outFile;
+	std::string logType;
+	bool extractEv;
+} EVOContainer_t;
+
 typedef struct cmd_options_s // we need to name this to make MSVC happy, since we make default assignments in the struct below (updateFirmwareTarget, etc)
 {
 	std::string comPort; 					// -c com_port
@@ -59,7 +75,7 @@ typedef struct cmd_options_s // we need to name this to make MSVC happy, since w
 	bool forceBootloaderUpdate;				// -fb
 	bool bootloaderVerify; 					// -bv
 	bool replayDataLog;
-	bool softwareResetImx;
+	bool softwareReset;
 	bool magRecal;
 	uint32_t magRecalMode;
 	survey_in_t surveyIn;
@@ -93,6 +109,9 @@ typedef struct cmd_options_s // we need to name this to make MSVC happy, since w
     fwUpdate::target_t updateFirmwareTarget = fwUpdate::TARGET_HOST;
     uint32_t updateFirmwareSlot = 0;
 	uint32_t runDuration = 0;				// Run for this many millis before exiting (0 = indefinitely)
+	bool list_devices = false;				// if true, dumps results of findDevices() including port name.
+	EVFContainer_t evFCont = {0};
+	EVOContainer_t evOCont;
 } cmd_options_t;
 
 extern cmd_options_t g_commandLineOptions;
@@ -107,6 +126,7 @@ int cltool_serialPortSendComManager(CMHANDLE cmHandle, int pHandle, buffer_t* bu
 bool cltool_setupLogger(InertialSense& inertialSenseInterface);
 bool cltool_parseCommandLine(int argc, char* argv[]);
 bool cltool_replayDataLog();
+bool cltool_extractEventData();
 void cltool_outputUsage();
 void cltool_outputHelp();
 void cltool_firmwareUpdateWaiter();
