@@ -7,6 +7,8 @@
 // #define ENACMP
 // #define ENASBS
 
+#define IS_DEBUG_FIXED_FLASH     1
+
 #define NUMSATSOL   20      // Max number of observations used in the solution
 #define MAXOBS      46      // Max number of observations used in pre-buffer
 #define NFREQ       2       // Number of carrier frequencies
