@@ -14,17 +14,15 @@ build_header "LogInspector"
 build_footer $?
 
 clean_directory "cltool"                ../cltool/build
+
+rm -rf ../CMakeFiles
+rm -rf ../cmake_install.cmake
+rm -rf ../Makefile
+rm -f ../CMakeCache.txt
+rm -f ../libInertialSense.a
+
 clean_directory "SDK_Examples"          ../ExampleProjects/build
 clean_directory "SDK_Unit_Tests"        ../src/test/build
-
-clean_directory "libInertialSenseSDK"   ../CMakeFiles
-pushd ..
-rm -rf cmake-build-debug CMakeCache.txt cmake_install.cmake libInertialSenseSDK.a
-popd
-
-rm -rf build
-
-
 
 
 ###############################################################################
