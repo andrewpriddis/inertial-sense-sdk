@@ -39,12 +39,23 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "protocol_nmea.h"
 #include "util/natsort.h"
 
+#if PLATFORM_IS_LINUX
+#include <wiringPi.h>
+#endif
+
 using namespace std;
 
 #define XMIT_CLOSE_DELAY_MS    1000     // (ms) delay prior to cltool close to ensure data transmission
 
 static bool g_killThreadsNow = false;
 int g_devicesUpdating = 0;
+
+uint32_t updateAttempts = 0;
+uint32_t updateRecoverys = 0;
+uint32_t updateRecoverysFailed = 0;
+uint32_t failedToDork = 0;
+
+bool updateStarted = false;
 
 static void display_server_client_status(InertialSense* i, bool server=false, bool showMessageSummary=false, bool refreshDisplay=false)
 {
@@ -446,8 +457,30 @@ static int cltool_updateFirmware()
     }
     cout << "Updating application firmware: " << g_commandLineOptions.updateAppFirmwareFilename << endl;
 
-    firmwareProgressContexts.clear();
-    if(InertialSense::BootloadFile(
+    while (1)
+    {
+        // start attempt
+
+        // put in good state
+        cout << "Perform reset to get in good state Sleeping for 10 Seconds.\r\n";
+        #if PLATFORM_IS_LINUX
+            digitalWrite(0, LOW);
+            Sleep(10000);
+            digitalWrite(0, HIGH);
+        #else
+            Sleep(10000);
+        #endif
+
+        updateAttempts++;
+        updateStarted = false;
+        cout << "Starting attempt: " << updateAttempts << "\r\n";
+        cout << "Recovery count: " << updateRecoverys << "\r\n";
+        cout << "Failed to recover count: " << updateRecoverysFailed << "\r\n";
+        cout << "Faild to dork count: " << failedToDork << "\r\n";
+
+        firmwareProgressContexts.clear();
+
+        if (InertialSense::BootloadFile(
             g_commandLineOptions.comPort,
             0,
             g_commandLineOptions.updateAppFirmwareFilename,
@@ -457,9 +490,52 @@ static int cltool_updateFirmware()
             bootloadUpdateCallback,
             (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
             cltool_bootloadUpdateInfo,
-            cltool_firmwareUpdateWaiter
-    ) == IS_OP_OK) return 0;
-    return -1;
+            cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED)
+        {
+            failedToDork++;
+            cout << "Failed to dork\r\n";
+            updateRecoverys++;
+            continue;
+        }
+
+        if(!updateStarted)
+        {
+            updateRecoverysFailed++;
+            cout << "Failed to recover\r\n";
+            continue;
+        }
+
+        updateRecoverys++;
+
+
+        // it should now be ready to dork
+        updateStarted = false;
+
+        #define USER_NOTIFY_SEC 5
+
+        // sleep to put in bad state
+        for (int i = 0; i < 120; i += USER_NOTIFY_SEC)
+        {
+            cout << "Sleeping to dork " << i* USER_NOTIFY_SEC << "\r\n";
+            Sleep(1000 * USER_NOTIFY_SEC);
+        }
+
+        if (InertialSense::BootloadFile(
+            g_commandLineOptions.comPort,
+            0,
+            g_commandLineOptions.updateAppFirmwareFilename,
+            g_commandLineOptions.updateBootloaderFilename,
+            g_commandLineOptions.forceBootloaderUpdate,
+            g_commandLineOptions.baudRate,
+            bootloadUpdateCallback,
+            (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
+            cltool_bootloadUpdateInfo,
+            cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED || updateStarted)
+        {
+            failedToDork++;
+            cout << "Failed to dork\r\n";
+        }
+    }
 }
 
 std::mutex print_mutex;
@@ -526,11 +602,30 @@ is_operation_result bootloadUpdateCallback(void* obj, float percent)
     {
         ISBootloader::cISBootloaderBase* ctx = (ISBootloader::cISBootloaderBase*)obj;
         ctx->m_update_progress = percent;
+
+        // reset and start next attempt
+        if (percent > .25)
+        {
+            #if PLATFORM_IS_LINUX
+                digitalWrite(0, HIGH);
+            #endif
+
+            printf("Reset Time\r\n");
+
+            g_killThreadsNow = true;
+            
+            return IS_OP_CANCELLED;
+
+        }
+        else if (percent > .01)
+            updateStarted = true;
+
     }
-    return g_killThreadsNow ? IS_OP_CANCELLED : IS_OP_OK;
+
+    return g_killThreadsNow ?  : IS_OP_OK;
 }
 
-is_operation_result bootloadVerifyCallback(void* obj, float percent)
+is_operation_resIS_OP_CANCELLEDult bootloadVerifyCallback(void* obj, float percent)
 {
     if(obj)
     {
