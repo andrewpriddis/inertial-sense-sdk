@@ -530,6 +530,7 @@ static int cltool_updateFirmware()
     //         Sleep(10000);
     //     #endif
 
+    // // update attempt
     //     updateAttempts++;
     //     updateStarted = false;
     //     cout << "Starting attempt: " << updateAttempts << "\r\n";
