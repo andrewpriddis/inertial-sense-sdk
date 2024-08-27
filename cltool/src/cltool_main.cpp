@@ -507,11 +507,11 @@ static int cltool_updateFirmware()
         #if PLATFORM_IS_LINUX
             cout << "LOW\r\n";
             gpioWrite(RESET_PIN, 0);
-            Sleep(10000);
+            sleep(10000);
 
             cout << "HIGH\r\n";
             gpioWrite(RESET_PIN, 1);
-            Sleep(10000);
+            sleep(10000);
         #else
             cout << "WINDOWS\r\n";
             Sleep(10000);
@@ -524,7 +524,7 @@ static int cltool_updateFirmware()
     //     cout << "Perform reset to get in good state Sleeping for 10 Seconds.\r\n";
     //     #if PLATFORM_IS_LINUX
     //         gpioWrite(RESET_PIN, 0);
-    //         Sleep(10000);
+    //         sleep(10000);
     //         gpioWrite(RESET_PIN, 1);
     //     #else
     //         Sleep(10000);
@@ -577,7 +577,11 @@ static int cltool_updateFirmware()
     //     for (int i = 0; i < 120; i += USER_NOTIFY_SEC)
     //     {
     //         cout << "Sleeping to dork " << i* USER_NOTIFY_SEC << "\r\n";
+    //         #if PLATFORM_IS_LINUX
+    //         sleep(1000 * USER_NOTIFY_SEC);
+    //         #else
     //         Sleep(1000 * USER_NOTIFY_SEC);
+    //         #endif
     //     }
 
     //     if (InertialSense::BootloadFile(
