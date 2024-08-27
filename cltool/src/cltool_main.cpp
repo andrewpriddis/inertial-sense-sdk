@@ -40,7 +40,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "util/natsort.h"
 
 #if PLATFORM_IS_LINUX
-#include <ppigpio.h>
+#include <pigpio.h>
 #endif
 
 using namespace std;
