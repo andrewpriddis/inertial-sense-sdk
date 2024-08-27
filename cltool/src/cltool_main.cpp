@@ -72,6 +72,7 @@ void ISgpioWrite(bool val)
         {
             valueFile << "1";
             valueFile.flush();
+        }
         else
         {
             valueFile << "0";
@@ -528,7 +529,7 @@ static int cltool_updateFirmware()
         exportFile.close();
 
         // Set the pin as output
-        std::ofstream directionFile("/sys/class/gpio/gpio" + std::to_string(pin) + "/direction");
+        std::ofstream directionFile("/sys/class/gpio/gpio" + std::to_string(RESET_PIN) + "/direction");
         directionFile << "out";
         directionFile.close();
 
