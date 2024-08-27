@@ -548,11 +548,11 @@ static int cltool_updateFirmware()
         #if PLATFORM_IS_LINUX
             cout << "LOW\r\n";
             ISgpioWrite(false);
-            sleep(10);
+            sleep(1);
 
             cout << "HIGH\r\n";
             ISgpioWrite(true);
-            sleep(10);
+            sleep(1);
         #else
             cout << "WINDOWS\r\n";
             Sleep(10000);
@@ -1044,14 +1044,6 @@ static int inertialSenseMain()
     // clear display
     g_inertialSenseDisplay.SetDisplayMode((cInertialSenseDisplay::eDisplayMode)g_commandLineOptions.displayMode);
     g_inertialSenseDisplay.SetKeyboardNonBlocking();
-
-    cout << "PRINTME\r\n";
-    cout << "PRINTME\r\n";
-    cout << "PRINTME\r\n";
-    cout << "PRINTME\r\n";
-    cout << "PRINTME\r\n";
-    cout << "PRINTME\r\n";
-    cout << "PRINTME\r\n";
 
     // if replay data log specified on command line, do that now and return
     if (g_commandLineOptions.replayDataLog)
