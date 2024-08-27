@@ -39,11 +39,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "protocol_nmea.h"
 #include "util/natsort.h"
 
+#include <iostream>
+#include <fstream>
+#include <string>
+
+
+using namespace std;
+
 #if PLATFORM_IS_LINUX
 #include <pigpio.h>
 #endif
-
-using namespace std;
 
 #define XMIT_CLOSE_DELAY_MS    1000     // (ms) delay prior to cltool close to ensure data transmission
 
@@ -58,6 +63,30 @@ uint32_t updateRecoverysFailed = 0;
 uint32_t failedToDork = 0;
 
 bool updateStarted = false;
+
+void ISgpioWrite(bool val)
+{
+    #if PLATFORM_IS_LINUX
+        std::ofstream valueFile("/sys/class/gpio/gpio" + std::to_string(RESET_PIN) + "/value");
+        if(val)
+        {
+            valueFile << "1";
+            valueFile.flush();
+        else
+        {
+            valueFile << "0";
+            valueFile.flush();
+        }
+        // Unexport the GPIO pin
+        std::ofstream unexportFile("/sys/class/gpio/unexport");
+        unexportFile << RESET_PIN;
+        unexportFile.close();
+    #else
+        cout << "Windows: Cannot write pin.\r\n";
+    #endif
+
+    return;
+}
 
 static void display_server_client_status(InertialSense* i, bool server=false, bool showMessageSummary=false, bool refreshDisplay=false)
 {
@@ -485,13 +514,24 @@ static int cltool_updateFirmware()
 {
 
     #if PLATFORM_IS_LINUX
-        if (gpioInitialise() < 0)
-        {
-            cout << "Failed to init GPIO!\r\n";
-            return 1; // Initialize pigpio
-        }
+        // if (gpioInitialise() < 0)
+        // {
+        //     cout << "Failed to init GPIO!\r\n";
+        //     return 1; // Initialize pigpio
+        // }
 
-        gpioSetMode(RESET_PIN, PI_OUTPUT); // Set GPIO pin 17 as output
+        // gpioSetMode(RESET_PIN, PI_OUTPUT); // Set GPIO pin 17 as output
+
+        // Export the GPIO pin
+        std::ofstream exportFile("/sys/class/gpio/export");
+        exportFile << RESET_PIN;
+        exportFile.close();
+
+        // Set the pin as output
+        std::ofstream directionFile("/sys/class/gpio/gpio" + std::to_string(pin) + "/direction");
+        directionFile << "out";
+        directionFile.close();
+
         cout << "GPIO " << RESET_PIN << " set!\r\n";
     #endif
 
@@ -506,12 +546,12 @@ static int cltool_updateFirmware()
     {
         #if PLATFORM_IS_LINUX
             cout << "LOW\r\n";
-            gpioWrite(RESET_PIN, 0);
-            sleep(10000);
+            ISgpioWrite(false);
+            sleep(10);
 
             cout << "HIGH\r\n";
-            gpioWrite(RESET_PIN, 1);
-            sleep(10000);
+            ISgpioWrite(true);
+            sleep(10);
         #else
             cout << "WINDOWS\r\n";
             Sleep(10000);
@@ -523,9 +563,10 @@ static int cltool_updateFirmware()
     //     // Put in good state
     //     cout << "Perform reset to get in good state Sleeping for 10 Seconds.\r\n";
     //     #if PLATFORM_IS_LINUX
-    //         gpioWrite(RESET_PIN, 0);
-    //         sleep(10000);
-    //         gpioWrite(RESET_PIN, 1);
+    //         ISgpioWrite(false);
+    //         sleep(10);
+    //         ISgpioWrite(true);
+    //         sleep(1);
     //     #else
     //         Sleep(10000);
     //     #endif
@@ -671,7 +712,7 @@ is_operation_result bootloadUpdateCallback(void* obj, float percent)
         if (percent > .25)
         {
             #if PLATFORM_IS_LINUX
-                gpioWrite(RESET_PIN, 0);
+                ISgpioWrite(false);
             #endif
 
             printf("Reset time\r\n");
