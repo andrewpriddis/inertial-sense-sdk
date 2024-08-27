@@ -17,7 +17,6 @@ include_directories(
     src
     ${IS_SDK_DIR}/src
     ${IS_SDK_DIR}/src/libusb/libusb
-	/usr/include/
 )
 
 # Link the InertialSenseSDK static library 
