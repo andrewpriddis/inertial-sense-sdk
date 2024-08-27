@@ -40,7 +40,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "util/natsort.h"
 
 #if PLATFORM_IS_LINUX
-#include <wiringPi.h>
+#include <pigpio.h>
 #endif
 
 using namespace std;
@@ -51,6 +51,7 @@ static bool g_killThreadsNow = false;
 static bool g_enableDataCallback = false;
 int g_devicesUpdating = 0;
 
+#define RESET_PIN   17
 uint32_t updateAttempts = 0;
 uint32_t updateRecoverys = 0;
 uint32_t updateRecoverysFailed = 0;
@@ -482,6 +483,18 @@ is_operation_result bootloadVerifyCallback(void* obj, float percent);
 
 static int cltool_updateFirmware()
 {
+
+    #if PLATFORM_IS_LINUX
+        if (gpioInitialise() < 0)
+        {
+            cout << "Failed to init GPIO!\r\n";
+            return 1; // Initialize pigpio
+        }
+
+        gpioSetMode(RESET_PIN, PI_OUTPUT); // Set GPIO pin 17 as output
+        cout << "GPIO " << RESET_PIN << " set!\r\n";
+    #endif
+
     // [BOOTLOADER INSTRUCTION] Update firmware
     if (g_commandLineOptions.updateBootloaderFilename.size() > 0)
     {
@@ -491,83 +504,97 @@ static int cltool_updateFirmware()
 
     while (1)
     {
-        // start attempt
-
-        // put in good state
-        cout << "Perform reset to get in good state Sleeping for 10 Seconds.\r\n";
         #if PLATFORM_IS_LINUX
-            digitalWrite(0, LOW);
+            cout << "LOW\r\n";
+            gpioWrite(RESET_PIN, 0);
             Sleep(10000);
-            digitalWrite(0, HIGH);
+
+            cout << "HIGH\r\n";
+            gpioWrite(RESET_PIN, 1);
+            Sleep(10000);
         #else
+            cout << "WINDOWS\r\n";
             Sleep(10000);
         #endif
-
-        updateAttempts++;
-        updateStarted = false;
-        cout << "Starting attempt: " << updateAttempts << "\r\n";
-        cout << "Recovery count: " << updateRecoverys << "\r\n";
-        cout << "Failed to recover count: " << updateRecoverysFailed << "\r\n";
-        cout << "Faild to dork count: " << failedToDork << "\r\n";
-
-        firmwareProgressContexts.clear();
-
-        if (InertialSense::BootloadFile(
-            g_commandLineOptions.comPort,
-            0,
-            g_commandLineOptions.updateAppFirmwareFilename,
-            g_commandLineOptions.updateBootloaderFilename,
-            g_commandLineOptions.forceBootloaderUpdate,
-            g_commandLineOptions.baudRate,
-            bootloadUpdateCallback,
-            (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
-            cltool_bootloadUpdateInfo,
-            cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED)
-        {
-            failedToDork++;
-            cout << "Failed to dork\r\n";
-            updateRecoverys++;
-            continue;
-        }
-
-        if(!updateStarted)
-        {
-            updateRecoverysFailed++;
-            cout << "Failed to recover\r\n";
-            continue;
-        }
-
-        updateRecoverys++;
-
-
-        // it should now be ready to dork
-        updateStarted = false;
-
-        #define USER_NOTIFY_SEC 5
-
-        // sleep to put in bad state
-        for (int i = 0; i < 120; i += USER_NOTIFY_SEC)
-        {
-            cout << "Sleeping to dork " << i* USER_NOTIFY_SEC << "\r\n";
-            Sleep(1000 * USER_NOTIFY_SEC);
-        }
-
-        if (InertialSense::BootloadFile(
-            g_commandLineOptions.comPort,
-            0,
-            g_commandLineOptions.updateAppFirmwareFilename,
-            g_commandLineOptions.updateBootloaderFilename,
-            g_commandLineOptions.forceBootloaderUpdate,
-            g_commandLineOptions.baudRate,
-            bootloadUpdateCallback,
-            (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
-            cltool_bootloadUpdateInfo,
-            cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED || updateStarted)
-        {
-            failedToDork++;
-            cout << "Failed to dork\r\n";
-        }
     }
+
+    //     // Start attempt
+        
+    //     // Put in good state
+    //     cout << "Perform reset to get in good state Sleeping for 10 Seconds.\r\n";
+    //     #if PLATFORM_IS_LINUX
+    //         gpioWrite(RESET_PIN, 0);
+    //         Sleep(10000);
+    //         gpioWrite(RESET_PIN, 1);
+    //     #else
+    //         Sleep(10000);
+    //     #endif
+
+    //     updateAttempts++;
+    //     updateStarted = false;
+    //     cout << "Starting attempt: " << updateAttempts << "\r\n";
+    //     cout << "Recovery count: " << updateRecoverys << "\r\n";
+    //     cout << "Failed to recover count: " << updateRecoverysFailed << "\r\n";
+    //     cout << "Faild to dork count: " << failedToDork << "\r\n";
+
+    //     firmwareProgressContexts.clear();
+
+    //     if (InertialSense::BootloadFile(
+    //         g_commandLineOptions.comPort,
+    //         0,
+    //         g_commandLineOptions.updateAppFirmwareFilename,
+    //         g_commandLineOptions.updateBootloaderFilename,
+    //         g_commandLineOptions.forceBootloaderUpdate,
+    //         g_commandLineOptions.baudRate,
+    //         bootloadUpdateCallback,
+    //         (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
+    //         cltool_bootloadUpdateInfo,
+    //         cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED)
+    //     {
+    //         failedToDork++;
+    //         cout << "Failed to dork\r\n";
+    //         updateRecoverys++;
+    //         continue;
+    //     }
+
+    //     if(!updateStarted)
+    //     {
+    //         updateRecoverysFailed++;
+    //         cout << "Failed to recover\r\n";
+    //         continue;
+    //     }
+
+    //     updateRecoverys++;
+
+
+    //     // it should now be ready to dork
+    //     updateStarted = false;
+
+    //     #define USER_NOTIFY_SEC 5
+
+    //     // sleep to put in bad state
+    //     for (int i = 0; i < 120; i += USER_NOTIFY_SEC)
+    //     {
+    //         cout << "Sleeping to dork " << i* USER_NOTIFY_SEC << "\r\n";
+    //         Sleep(1000 * USER_NOTIFY_SEC);
+    //     }
+
+    //     if (InertialSense::BootloadFile(
+    //         g_commandLineOptions.comPort,
+    //         0,
+    //         g_commandLineOptions.updateAppFirmwareFilename,
+    //         g_commandLineOptions.updateBootloaderFilename,
+    //         g_commandLineOptions.forceBootloaderUpdate,
+    //         g_commandLineOptions.baudRate,
+    //         bootloadUpdateCallback,
+    //         (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
+    //         cltool_bootloadUpdateInfo,
+    //         cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED || updateStarted)
+    //     {
+    //         failedToDork++;
+    //         cout << "Failed to dork\r\n";
+    //     }
+    // }
 }
 
 std::mutex print_mutex;
@@ -639,10 +666,10 @@ is_operation_result bootloadUpdateCallback(void* obj, float percent)
         if (percent > .25)
         {
             #if PLATFORM_IS_LINUX
-                digitalWrite(0, HIGH);
+                gpioWrite(RESET_PIN, 0);
             #endif
 
-            printf("Reset Time\r\n");
+            printf("Reset time\r\n");
 
             g_killThreadsNow = true;
             
@@ -654,10 +681,10 @@ is_operation_result bootloadUpdateCallback(void* obj, float percent)
 
     }
 
-    return g_killThreadsNow ?  : IS_OP_OK;
+    return g_killThreadsNow ? IS_OP_CANCELLED : IS_OP_OK;
 }
 
-is_operation_resIS_OP_CANCELLEDult bootloadVerifyCallback(void* obj, float percent)
+is_operation_result bootloadVerifyCallback(void* obj, float percent)
 {
     if(obj)
     {
