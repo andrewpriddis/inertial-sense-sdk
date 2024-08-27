@@ -68,6 +68,7 @@ void ISgpioWrite(bool val)
 {
     #if PLATFORM_IS_LINUX
         std::ofstream valueFile("/sys/class/gpio/gpio" + std::to_string(RESET_PIN) + "/value");
+        // std::ofstream valueFile("/sys/class/gpio/gpio17/value");
         if(val)
         {
             valueFile << "1";
@@ -78,10 +79,6 @@ void ISgpioWrite(bool val)
             valueFile << "0";
             valueFile.flush();
         }
-        // Unexport the GPIO pin
-        std::ofstream unexportFile("/sys/class/gpio/unexport");
-        unexportFile << RESET_PIN;
-        unexportFile.close();
     #else
         cout << "Windows: Cannot write pin.\r\n";
     #endif
