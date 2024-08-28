@@ -67,17 +67,19 @@ bool updateStarted = false;
 void ISgpioWrite(bool val)
 {
     #if PLATFORM_IS_LINUX
-        std::ofstream valueFile("/sys/class/gpio/gpio" + std::to_string(RESET_PIN) + "/value");
+        // std::ofstream valueFile("/sys/class/gpio/gpio" + std::to_string(RESET_PIN) + "/value");
         // std::ofstream valueFile("/sys/class/gpio/gpio17/value");
         if(val)
         {
-            valueFile << "1";
-            valueFile.flush();
+            // valueFile << "1";
+            // valueFile.flush();
+            system("pinctrl set 17 op dh");
         }
         else
         {
-            valueFile << "0";
-            valueFile.flush();
+            // valueFile << "0";
+            // valueFile.flush();
+            system("pinctrl set 17 op dl");
         }
     #else
         cout << "Windows: Cannot write pin.\r\n";
@@ -520,17 +522,17 @@ static int cltool_updateFirmware()
 
         // gpioSetMode(RESET_PIN, PI_OUTPUT); // Set GPIO pin 17 as output
 
-        // Export the GPIO pin
-        std::ofstream exportFile("/sys/class/gpio/export");
-        exportFile << RESET_PIN;
-        exportFile.close();
+        // // Export the GPIO pin
+        // std::ofstream exportFile("/sys/class/gpio/export");
+        // exportFile << RESET_PIN;
+        // exportFile.close();
 
-        // Set the pin as output
-        std::ofstream directionFile("/sys/class/gpio/gpio" + std::to_string(RESET_PIN) + "/direction");
-        directionFile << "out";
-        directionFile.close();
+        // // Set the pin as output
+        // std::ofstream directionFile("/sys/class/gpio/gpio" + std::to_string(RESET_PIN) + "/direction");
+        // directionFile << "out";
+        // directionFile.close();
 
-        cout << "GPIO " << RESET_PIN << " set!\r\n";
+        // cout << "GPIO " << RESET_PIN << " set!\r\n";
     #endif
 
     // [BOOTLOADER INSTRUCTION] Update firmware
