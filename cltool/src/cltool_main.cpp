@@ -542,8 +542,8 @@ static int cltool_updateFirmware()
     }
     cout << "Updating application firmware: " << g_commandLineOptions.updateAppFirmwareFilename << endl;
 
-    // while (1)
-    // {
+    while (1)
+    {
     //     #if PLATFORM_IS_LINUX
     //         cout << "LOW\r\n";
     //         ISgpioWrite(false);
