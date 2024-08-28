@@ -542,105 +542,104 @@ static int cltool_updateFirmware()
     }
     cout << "Updating application firmware: " << g_commandLineOptions.updateAppFirmwareFilename << endl;
 
-    while (1)
-    {
-        #if PLATFORM_IS_LINUX
-            cout << "LOW\r\n";
-            ISgpioWrite(false);
-            sleep(1);
-
-            cout << "HIGH\r\n";
-            ISgpioWrite(true);
-            sleep(1);
-        #else
-            cout << "WINDOWS\r\n";
-            Sleep(10000);
-        #endif
-    }
-
-    //     // Start attempt
-        
-    //     // Put in good state
-    //     cout << "Perform reset to get in good state Sleeping for 10 Seconds.\r\n";
+    // while (1)
+    // {
     //     #if PLATFORM_IS_LINUX
+    //         cout << "LOW\r\n";
     //         ISgpioWrite(false);
-    //         sleep(10);
+    //         sleep(1);
+
+    //         cout << "HIGH\r\n";
     //         ISgpioWrite(true);
     //         sleep(1);
     //     #else
+    //         cout << "WINDOWS\r\n";
     //         Sleep(10000);
     //     #endif
-
-    // // update attempt
-    //     updateAttempts++;
-    //     updateStarted = false;
-    //     cout << "Starting attempt: " << updateAttempts << "\r\n";
-    //     cout << "Recovery count: " << updateRecoverys << "\r\n";
-    //     cout << "Failed to recover count: " << updateRecoverysFailed << "\r\n";
-    //     cout << "Faild to dork count: " << failedToDork << "\r\n";
-
-    //     firmwareProgressContexts.clear();
-
-    //     if (InertialSense::BootloadFile(
-    //         g_commandLineOptions.comPort,
-    //         0,
-    //         g_commandLineOptions.updateAppFirmwareFilename,
-    //         g_commandLineOptions.updateBootloaderFilename,
-    //         g_commandLineOptions.forceBootloaderUpdate,
-    //         g_commandLineOptions.baudRate,
-    //         bootloadUpdateCallback,
-    //         (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
-    //         cltool_bootloadUpdateInfo,
-    //         cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED)
-    //     {
-    //         failedToDork++;
-    //         cout << "Failed to dork\r\n";
-    //         updateRecoverys++;
-    //         continue;
-    //     }
-
-    //     if(!updateStarted)
-    //     {
-    //         updateRecoverysFailed++;
-    //         cout << "Failed to recover\r\n";
-    //         continue;
-    //     }
-
-    //     updateRecoverys++;
-
-
-    //     // it should now be ready to dork
-    //     updateStarted = false;
-
-    //     #define USER_NOTIFY_SEC 5
-
-    //     // sleep to put in bad state
-    //     for (int i = 0; i < 120; i += USER_NOTIFY_SEC)
-    //     {
-    //         cout << "Sleeping to dork " << i* USER_NOTIFY_SEC << "\r\n";
-    //         #if PLATFORM_IS_LINUX
-    //         sleep(1000 * USER_NOTIFY_SEC);
-    //         #else
-    //         Sleep(1000 * USER_NOTIFY_SEC);
-    //         #endif
-    //     }
-
-    //     if (InertialSense::BootloadFile(
-    //         g_commandLineOptions.comPort,
-    //         0,
-    //         g_commandLineOptions.updateAppFirmwareFilename,
-    //         g_commandLineOptions.updateBootloaderFilename,
-    //         g_commandLineOptions.forceBootloaderUpdate,
-    //         g_commandLineOptions.baudRate,
-    //         bootloadUpdateCallback,
-    //         (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
-    //         cltool_bootloadUpdateInfo,
-    //         cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED || updateStarted)
-    //     {
-    //         failedToDork++;
-    //         cout << "Failed to dork\r\n";
-    //     }
     // }
+
+        // Start attempt
+        
+        // Put in good state
+        cout << "Perform reset to get in good state Sleeping for 10 Seconds.\r\n";
+        #if PLATFORM_IS_LINUX
+            ISgpioWrite(false);
+            sleep(10);
+            ISgpioWrite(true);
+            sleep(5);
+        #else
+            Sleep(10000);
+        #endif
+
+    // update attempt
+        updateAttempts++;
+        updateStarted = false;
+        cout << "Starting attempt: " << updateAttempts << "\r\n";
+        cout << "Recovery count: " << updateRecoverys << "\r\n";
+        cout << "Failed to recover count: " << updateRecoverysFailed << "\r\n";
+        cout << "Faild to dork count: " << failedToDork << "\r\n";
+
+        firmwareProgressContexts.clear();
+
+        if (InertialSense::BootloadFile(
+            g_commandLineOptions.comPort,
+            0,
+            g_commandLineOptions.updateAppFirmwareFilename,
+            g_commandLineOptions.updateBootloaderFilename,
+            g_commandLineOptions.forceBootloaderUpdate,
+            g_commandLineOptions.baudRate,
+            bootloadUpdateCallback,
+            (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
+            cltool_bootloadUpdateInfo,
+            cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED)
+        {
+            failedToDork++;
+            cout << "Failed to dork\r\n";
+            updateRecoverys++;
+            continue;
+        }
+
+        if(!updateStarted)
+        {
+            updateRecoverysFailed++;
+            cout << "Failed to recover\r\n";
+            continue;
+        }
+
+        updateRecoverys++;
+
+        // it should now be ready to dork
+        updateStarted = false;
+
+        #define USER_NOTIFY_SEC 5
+
+        // sleep to put in bad state
+        for (int i = 0; i < 120; i += USER_NOTIFY_SEC)
+        {
+            cout << "Sleeping to dork " << i* USER_NOTIFY_SEC << "\r\n";
+            #if PLATFORM_IS_LINUX
+            sleep(1000 * USER_NOTIFY_SEC);
+            #else
+            Sleep(1000 * USER_NOTIFY_SEC);
+            #endif
+        }
+
+        if (InertialSense::BootloadFile(
+            g_commandLineOptions.comPort,
+            0,
+            g_commandLineOptions.updateAppFirmwareFilename,
+            g_commandLineOptions.updateBootloaderFilename,
+            g_commandLineOptions.forceBootloaderUpdate,
+            g_commandLineOptions.baudRate,
+            bootloadUpdateCallback,
+            (g_commandLineOptions.bootloaderVerify ? bootloadVerifyCallback : 0),
+            cltool_bootloadUpdateInfo,
+            cltool_firmwareUpdateWaiter) != IS_OP_CANCELLED || updateStarted)
+        {
+            failedToDork++;
+            cout << "Failed to dork\r\n";
+        }
+    }
 }
 
 std::mutex print_mutex;
