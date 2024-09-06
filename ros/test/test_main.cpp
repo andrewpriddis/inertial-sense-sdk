@@ -62,7 +62,7 @@ TEST(test_main, basic)
  * DID_GPS1_TIMEPULSE provides the towOffset, timeMcu (effectively time since bootup)
  */
 
-#if 0 //Test needs to be revised. Odd timing that is not necessarily a problem causes the test to fail periodically. Specifically the GPS <> INS timing sometimes is 1e+6 because of timing of the test start and all the messages be received.
+#if 1 //Test needs to be revised. Odd timing that is not necessarily a problem causes the test to fail periodically. Specifically the GPS <> INS timing sometimes is 1e+6 because of timing of the test start and all the messages be received.
 TEST(test_main, gps_ins_time_sync)
 {
     std::string yaml = "topic: \"inertialsense\"\n"
