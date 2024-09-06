@@ -47,57 +47,57 @@ jobs:
           ./install_sdk_dependencies.sh
           ./install_gtest.sh
 
-#       - name: Clean All
-#         run: |
-#           rm -rf ../cltool/build ../ExampleProjects/build
+      - name: Clean All
+        run: |
+          rm -rf ../cltool/build ../ExampleProjects/build
 
       - name: Build SDK
         run: ./build_is_sdk.sh
   
-#       - name: Build/Run Unit Tests
-#         run: ./build_test_cmake.sh --build --test "SDK Unit Tests" ../tests IS-SDK_unit-tests
+      - name: Build/Run Unit Tests
+        run: ./build_test_cmake.sh --build --test "SDK Unit Tests" ../tests IS-SDK_unit-tests
 
-#       - name: Build cltool
-#         run: ./build_cltool.sh
+      - name: Build cltool
+        run: ./build_cltool.sh
 
-#       - name: Build LogInspector
-#         run: ./build_log_inspector.sh
+      - name: Build LogInspector
+        run: ./build_log_inspector.sh
 
-#       - name: Build SDK Examples
-#         run: ./build_test_cmake.sh --build "SDK Example Projects" ../ExampleProjects
+      - name: Build SDK Examples
+        run: ./build_test_cmake.sh --build "SDK Example Projects" ../ExampleProjects
 
-#   ba_windows:
-#     name: "General Software Windows"
-#     runs-on: [self-hosted, windows, x64]
-#     # if: false  # disable this job
-#     # if: (github.ref == 'refs/heads/main') || (github.ref == 'refs/heads/develop')   # Only run job on these branches
+  ba_windows:
+    name: "General Software Windows"
+    runs-on: [self-hosted, windows, x64]
+    # if: false  # disable this job
+    # if: (github.ref == 'refs/heads/main') || (github.ref == 'refs/heads/develop')   # Only run job on these branches
 
-#     defaults:
-#       run:
-#         working-directory: scripts/windows
+    defaults:
+      run:
+        working-directory: scripts/windows
 
-#     steps:
-#       - name: Git checkout
-#         uses: actions/checkout@v4
-#         with:
-#           # token: ${{ secrets.ALL_REPO_PAT }}
-#           submodules: recursive
-#           fetch-depth: 0  # Fetches full commit history, needed for repo info steps in build
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          # token: ${{ secrets.ALL_REPO_PAT }}
+          submodules: recursive
+          fetch-depth: 0  # Fetches full commit history, needed for repo info steps in build
 
-#       - name: Clean all
-#         run: ./clean_all.bat
+      - name: Clean all
+        run: ./clean_all.bat
 
-# #      - name: SDK Unit Tests
-# #        run: ./build_test_cmake.sh --build --test "SDK Unit Tests" ../tests
+#      - name: SDK Unit Tests
+#        run: ./build_test_cmake.sh --build --test "SDK Unit Tests" ../tests
 
-#       - name: Build CLTool
-#         run: ./build_cltool.bat
+      - name: Build CLTool
+        run: ./build_cltool.bat
 
-#       - name: Build LogInspector
-#         run: ./build_log_inspector.bat
+      - name: Build LogInspector
+        run: ./build_log_inspector.bat
 
-#       - name: Build SDK Examples
-#         run: ./build_sdk_examples.bat
+      - name: Build SDK Examples
+        run: ./build_sdk_examples.bat
 
   ros-bridge-tests:
     name: "ROS Bridge Tests"
