@@ -94,9 +94,11 @@ static void cltool_dataCallback(InertialSense* i, p_data_t* data, int pHandle)
 
     // Print data to terminal - but only if we aren't doing a firmware update...
     if (g_devicesUpdating)
-        cout.flush();
-    // else if (!g_inertialSenseDisplay.ExitProgram()) // don't process any additional data once we've been told to exit
-    //     g_inertialSenseDisplay.ProcessData(data);
+	{
+    //     cout.flush();
+	}
+    else if (!g_inertialSenseDisplay.ExitProgram()) // don't process any additional data once we've been told to exit
+        g_inertialSenseDisplay.ProcessData(data);
 }
 
 
@@ -137,14 +139,28 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
     g_enableDataCallback = true;
 
     // Point display to serial port and is_comm_instance to print debug info
-    // g_inertialSenseDisplay.SetSerialPort(inertialSenseInterface.SerialPort());
+    g_inertialSenseDisplay.SetSerialPort(inertialSenseInterface.SerialPort());
     com_manager_t* cm = (com_manager_t*)comManagerGetGlobal();
     if (cm != NULL && cm->numPorts > 0 && cm->ports)
     {
-        // if (g_commandLineOptions.datasets.size() > 0)
-        // {   // Select DID for generic display, which support viewing only one DID.
-        //     g_inertialSenseDisplay.SelectEditDataset(g_commandLineOptions.datasets.front().did, true);  
-        // }
+        g_inertialSenseDisplay.SetCommInstance(&(cm->ports->comm));
+    }
+
+    // ask for device info every 2 seconds
+    inertialSenseInterface.BroadcastBinaryData(DID_DEV_INFO, 2000);
+
+    // depending on command line options. stream various data sets
+    if (g_commandLineOptions.datasetEdit.did)
+    {   // Dataset to edit
+        g_inertialSenseDisplay.SelectEditDataset(g_commandLineOptions.datasetEdit.did);
+        inertialSenseInterface.BroadcastBinaryData(g_commandLineOptions.datasetEdit.did, g_commandLineOptions.datasetEdit.periodMultiple);
+    }
+    else
+    {
+        if (g_commandLineOptions.datasets.size() > 0)
+        {   // Select DID for generic display, which support viewing only one DID.
+            g_inertialSenseDisplay.SelectEditDataset(g_commandLineOptions.datasets.front().did, true);  
+        }
         cltool_requestDataSets(inertialSenseInterface, g_commandLineOptions.datasets);
     }
 
@@ -196,7 +212,10 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
         SLEEP_MS(XMIT_CLOSE_DELAY_MS);      // Delay to allow transmit time before port closes
         return false;
     }
-
+    if (g_commandLineOptions.flashCfg.length() != 0)
+    {
+        return cltool_updateFlashCfg(inertialSenseInterface, g_commandLineOptions.flashCfg);
+    }
     return true;
 }
 
@@ -394,7 +413,10 @@ void cltool_firmwareUpdateWaiter()
 
 static int cltool_dataStreaming()
 {
+    // [C++ COMM INSTRUCTION] STEP 1: Instantiate InertialSense Class
+    // Create InertialSense object, passing in data callback function pointer.
     InertialSense inertialSenseInterface(cltool_dataCallback);
+    inertialSenseInterface.EnableDeviceValidation(!g_commandLineOptions.disableDeviceValidation);
 
     // [C++ COMM INSTRUCTION] STEP 2: Open serial port
     if (!inertialSenseInterface.Open(g_commandLineOptions.comPort.c_str(), g_commandLineOptions.baudRate, false))
@@ -438,7 +460,7 @@ static int cltool_dataStreaming()
             SLEEP_MS(1);
 
             // [C++ COMM INSTRUCTION] STEP 4: Read data
-            while ((!g_commandLineOptions.runDuration || (current_timeMs() < exitTime)))
+            while (!g_inertialSenseDisplay.ExitProgram() && (!g_commandLineOptions.runDuration || (current_timeMs() < exitTime)))
             {
 
                 if (!inertialSenseInterface.Update())
@@ -447,12 +469,22 @@ static int cltool_dataStreaming()
                     break;
                 }
 
+                g_inertialSenseDisplay.GetKeyboardInput();
+
+                if (g_inertialSenseDisplay.UploadNeeded())
+                {
+                    cInertialSenseDisplay::edit_data_t *edata = g_inertialSenseDisplay.EditData();
+                    inertialSenseInterface.SendData(edata->did, edata->data, edata->info.dataSize, edata->info.dataOffset);
+                }
+
                // If updating firmware, and all devices have finished, Exit
                 if (g_commandLineOptions.updateFirmwareTarget != fwUpdate::TARGET_HOST) {
                     if (inertialSenseInterface.isFirmwareUpdateFinished()) {
                         exitCode = 0;
                         break;
                     }
+                } else {  // Only print the usual output if we AREN'T updating firmware...
+                    bool refreshDisplay = g_inertialSenseDisplay.PrintData();
                 }
 
                 if ((current_timeMs() - requestDataSetsTimeMs) > 1000) {
@@ -483,6 +515,8 @@ static int cltool_dataStreaming()
 
     // [C++ COMM INSTRUCTION] STEP 6: Close interface
     SLEEP_MS(100);
+    inertialSenseInterface.StopBroadcasts();
+    SLEEP_MS(100);
     inertialSenseInterface.Close();
     SLEEP_MS(100);
 
@@ -498,6 +532,10 @@ static void sigint_cb(int sig)
 
 static int inertialSenseMain()
 {
+    // clear display
+    g_inertialSenseDisplay.SetDisplayMode((cInertialSenseDisplay::eDisplayMode)g_commandLineOptions.displayMode);
+    g_inertialSenseDisplay.SetKeyboardNonBlocking();
+
 	if ((g_commandLineOptions.updateFirmwareTarget == fwUpdate::TARGET_HOST) && (g_commandLineOptions.updateAppFirmwareFilename.length() != 0))
     {
         // FIXME: {{ DEPRECATED }} -- This is the legacy update method (still required by the uINS3 and IMX-5, but will go away with the IMX-5.1)
@@ -513,6 +551,8 @@ static int inertialSenseMain()
     {   // open the device, start streaming data and logging if needed
 	    return cltool_dataStreaming();
 	}
+
+    return 0;
 }
 
 

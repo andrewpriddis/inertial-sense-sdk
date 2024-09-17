@@ -28,7 +28,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "ISTcpClient.h"
 #include "ISTcpServer.h"
 #include "ISLogger.h"
-// #include "ISDisplay.h"
+#include "ISDisplay.h"
 #include "ISUtilities.h"
 #include "ISSerialPort.h"
 #include "ISDataMappings.h"
@@ -38,11 +38,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "message_stats.h"
 #include "ISBootloaderThread.h"
 #include "ISFirmwareUpdater.h"
-
-std::ostream& boldOn(std::ostream& os);
-std::ostream& boldOff(std::ostream& os);
-std::ostream& endlbOn(std::ostream& os);  // Bold on with newline
-std::ostream& endlbOff(std::ostream& os); // Bold off with newline
 
 extern "C"
 {
@@ -624,7 +619,7 @@ private:
     int m_clientConnectionsTotal = 0;
     mul_msg_stats_t m_clientMessageStats = {};
 
-    bool m_enableDeviceValidation = false;
+    bool m_enableDeviceValidation = true;
     bool m_disableBroadcastsOnClose;
     com_manager_init_t m_cmInit;
     com_manager_port_t *m_cmPorts;

@@ -666,11 +666,11 @@ bool InertialSense::IsOpen()
 void InertialSense::Close()
 {
     SetLoggerEnabled(false);
-    // if (m_disableBroadcastsOnClose)
-    // {
-    //     StopBroadcasts();
-    //     SLEEP_MS(100);
-    // }
+//    if (m_disableBroadcastsOnClose)
+    {
+        StopBroadcasts();
+        SLEEP_MS(100);
+    }
     CloseSerialPorts(true); // allow all opened ports to transmit all buffered data
 }
 
@@ -1414,8 +1414,6 @@ bool InertialSense::OpenSerialPorts(const char* port, int baudRate)
         return false;
     }
 
-    m_enableDeviceValidation = false;
-
     // split port on comma in case we need to open multiple serial ports
     vector<string> ports;
     size_t maxCount = UINT32_MAX;
@@ -1440,16 +1438,18 @@ bool InertialSense::OpenSerialPorts(const char* port, int baudRate)
     // open serial ports
     for (size_t i = 0; i < ports.size(); i++)
     {
-        ISDevice device;
-        device.portHandle = i;
-        serialPortPlatformInit(&device.serialPort);
-        if (serialPortOpen(&device.serialPort, ports[i].c_str(), baudRate, 0) == 0)
+        serial_port_t serial;
+        serialPortPlatformInit(&serial);
+        if (serialPortOpen(&serial, ports[i].c_str(), baudRate, 0) == 0)
         {
             // failed to open
-            serialPortClose(&device.serialPort);
+            serialPortClose(&serial);
         }
         else
         {
+            ISDevice device;
+            device.portHandle = i;
+            device.serialPort = serial;
             device.sysParams.flashCfgChecksum = 0xFFFFFFFF;		// Invalidate flash config checksum to trigger sync event
             m_comManagerState.devices.push_back(device);
         }
