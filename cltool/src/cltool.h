@@ -21,7 +21,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 // change these includes to be the correct path for your system
 #include "InertialSense.h" // best to include this file first
-#include "ISDisplay.h"
+// #include "ISDisplay.h"
 #include "ISUtilities.h"
 #include "ISBootloaderBase.h"
 #include "util/util.h"
@@ -114,7 +114,7 @@ typedef struct cmd_options_s // we need to name this to make MSVC happy, since w
 
 extern cmd_options_t g_commandLineOptions;
 extern serial_port_t g_serialPort;
-extern cInertialSenseDisplay g_inertialSenseDisplay;
+// extern cInertialSenseDisplay g_inertialSenseDisplay;
 extern bool g_ctrlCPressed;
 
 int cltool_main(int argc, char* argv[]);
