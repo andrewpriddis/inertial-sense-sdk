@@ -144,6 +144,9 @@ bool ISFirmwareUpdater::fwUpdate_handleVersionResponse(const fwUpdate::payload_t
 }
 
 int ISFirmwareUpdater::fwUpdate_getImageChunk(uint32_t offset, uint32_t len, void **buffer) {
+
+    // SLEEP_MS(100);
+
     if (srcFile && (srcFile->rdstate() == 0)) {
         srcFile->seekg((std::streampos)offset);
         len = _MIN(len, session_image_size - (uint32_t)srcFile->tellg());

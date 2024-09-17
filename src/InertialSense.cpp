@@ -666,11 +666,11 @@ bool InertialSense::IsOpen()
 void InertialSense::Close()
 {
     SetLoggerEnabled(false);
-    if (m_disableBroadcastsOnClose)
-    {
-        StopBroadcasts();
-        SLEEP_MS(100);
-    }
+    // if (m_disableBroadcastsOnClose)
+    // {
+    //     StopBroadcasts();
+    //     SLEEP_MS(100);
+    // }
     CloseSerialPorts(true); // allow all opened ports to transmit all buffered data
 }
 
@@ -1414,6 +1414,8 @@ bool InertialSense::OpenSerialPorts(const char* port, int baudRate)
         return false;
     }
 
+    m_enableDeviceValidation = false;
+
     // split port on comma in case we need to open multiple serial ports
     vector<string> ports;
     size_t maxCount = UINT32_MAX;
@@ -1438,18 +1440,16 @@ bool InertialSense::OpenSerialPorts(const char* port, int baudRate)
     // open serial ports
     for (size_t i = 0; i < ports.size(); i++)
     {
-        serial_port_t serial;
-        serialPortPlatformInit(&serial);
-        if (serialPortOpen(&serial, ports[i].c_str(), baudRate, 0) == 0)
+        ISDevice device;
+        device.portHandle = i;
+        serialPortPlatformInit(&device.serialPort);
+        if (serialPortOpen(&device.serialPort, ports[i].c_str(), baudRate, 0) == 0)
         {
             // failed to open
-            serialPortClose(&serial);
+            serialPortClose(&device.serialPort);
         }
         else
         {
-            ISDevice device;
-            device.portHandle = i;
-            device.serialPort = serial;
             device.sysParams.flashCfgChecksum = 0xFFFFFFFF;		// Invalidate flash config checksum to trigger sync event
             m_comManagerState.devices.push_back(device);
         }
@@ -1470,77 +1470,77 @@ bool InertialSense::OpenSerialPorts(const char* port, int baudRate)
     // Register message hander callback functions: RealtimeMessageController (RMC) handler, NMEA, ublox, and RTCM3.
     comManagerSetCallbacks(m_handlerRmc, staticProcessRxNmea, m_handlerUblox, m_handlerRtcm3, m_handlerSpartn, m_handlerError);
 
-    bool timeoutOccurred = false;
-    if (m_enableDeviceValidation) {
-        unsigned int startTime = current_timeMs();
-        bool removedSerials = false;
+    // bool timeoutOccurred = false;
+    // if (m_enableDeviceValidation) {
+    //     unsigned int startTime = current_timeMs();
+    //     bool removedSerials = false;
 
-        do {
-            for (size_t i = 0; i < m_comManagerState.devices.size(); i++) {
-                if ((m_comManagerState.devices[i].serialPort.errorCode == ENOENT) ||
-                    (comManagerSendRaw((int) i, (uint8_t *) NMEA_CMD_QUERY_DEVICE_INFO, NMEA_CMD_SIZE) != 0)) {
-                    // there was some other janky issue with the requested port; even though the device technically exists, its in a bad state. Let's just drop it now.
-                    RemoveDevice(i);
-                    removedSerials = true;
-                }
-            }
+    //     do {
+    //         for (size_t i = 0; i < m_comManagerState.devices.size(); i++) {
+    //             if ((m_comManagerState.devices[i].serialPort.errorCode == ENOENT) ||
+    //                 (comManagerSendRaw((int) i, (uint8_t *) NMEA_CMD_QUERY_DEVICE_INFO, NMEA_CMD_SIZE) != 0)) {
+    //                 // there was some other janky issue with the requested port; even though the device technically exists, its in a bad state. Let's just drop it now.
+    //                 RemoveDevice(i);
+    //                 removedSerials = true;
+    //             }
+    //         }
 
-            SLEEP_MS(100);
-            comManagerStep();
+    //         SLEEP_MS(100);
+    //         comManagerStep();
 
-            if ((current_timeMs() - startTime) > (uint32_t)m_comManagerState.discoveryTimeout) {
-                timeoutOccurred = true;
-                break;
-            }
-        } while (!HasReceivedDeviceInfoFromAllDevices());
+    //         if ((current_timeMs() - startTime) > (uint32_t)m_comManagerState.discoveryTimeout) {
+    //             timeoutOccurred = true;
+    //             break;
+    //         }
+    //     } while (!HasReceivedDeviceInfoFromAllDevices());
 
-        // remove each failed device where communications were not received
-        std::vector<std::string> deadPorts;
-        for (int i = ((int) m_comManagerState.devices.size() - 1); i >= 0; i--) {
-            if (!HasReceivedDeviceInfo(i)) {
-                deadPorts.push_back(m_comManagerState.devices[i].serialPort.port);
-                RemoveDevice(i);
-                removedSerials = true;
-            }
-        }
+    //     // remove each failed device where communications were not received
+    //     std::vector<std::string> deadPorts;
+    //     for (int i = ((int) m_comManagerState.devices.size() - 1); i >= 0; i--) {
+    //         if (!HasReceivedDeviceInfo(i)) {
+    //             deadPorts.push_back(m_comManagerState.devices[i].serialPort.port);
+    //             RemoveDevice(i);
+    //             removedSerials = true;
+    //         }
+    //     }
 
-        if (timeoutOccurred) {
-            fprintf(stderr, "Timeout waiting for response from ports: [");
-            for (auto portItr = deadPorts.begin(); portItr != deadPorts.end(); portItr++) {
-                fprintf(stderr, "%s%s", (portItr == deadPorts.begin() ? "" : ", "), portItr->c_str());
-            }
-            fprintf(stderr, "]\n");
-            fflush(stderr);
-        }
+    //     if (timeoutOccurred) {
+    //         fprintf(stderr, "Timeout waiting for response from ports: [");
+    //         for (auto portItr = deadPorts.begin(); portItr != deadPorts.end(); portItr++) {
+    //             fprintf(stderr, "%s%s", (portItr == deadPorts.begin() ? "" : ", "), portItr->c_str());
+    //         }
+    //         fprintf(stderr, "]\n");
+    //         fflush(stderr);
+    //     }
 
-        // if no devices left, all failed, we return failure
-        if (m_comManagerState.devices.size() == 0) {
-            CloseSerialPorts();
-            return false;
-        }
+    //     // if no devices left, all failed, we return failure
+    //     if (m_comManagerState.devices.size() == 0) {
+    //         CloseSerialPorts();
+    //         return false;
+    //     }
 
-        // remove ports if we are over max count
-        while (m_comManagerState.devices.size() > maxCount) {
-            RemoveDevice(m_comManagerState.devices.size() - 1);
-            removedSerials = true;
-        }
+    //     // remove ports if we are over max count
+    //     while (m_comManagerState.devices.size() > maxCount) {
+    //         RemoveDevice(m_comManagerState.devices.size() - 1);
+    //         removedSerials = true;
+    //     }
 
-        // setup com manager again if serial ports dropped out with new count of serial ports
-        if (removedSerials) {
-            comManagerInit((int) m_comManagerState.devices.size(), 10, staticReadData, staticSendData, 0, staticProcessRxData, 0, 0, &m_cmInit, m_cmPorts);
-            comManagerSetCallbacks(m_handlerRmc, staticProcessRxNmea, m_handlerUblox, m_handlerRtcm3, m_handlerSpartn, m_handlerError);
-        }
-    }
+    //     // setup com manager again if serial ports dropped out with new count of serial ports
+    //     if (removedSerials) {
+    //         comManagerInit((int) m_comManagerState.devices.size(), 10, staticReadData, staticSendData, 0, staticProcessRxData, 0, 0, &m_cmInit, m_cmPorts);
+    //         comManagerSetCallbacks(m_handlerRmc, staticProcessRxNmea, m_handlerUblox, m_handlerRtcm3, m_handlerSpartn, m_handlerError);
+    //     }
+    // }
 
     // request extended device info for remaining connected devices...
-    for (int i = ((int) m_comManagerState.devices.size() - 1); i >= 0; i--) {
-        // but only if they are of a compatible protocol version
-        if (m_comManagerState.devices[i].devInfo.protocolVer[0] == PROTOCOL_VERSION_CHAR0) {
-            comManagerGetData((int) i, DID_SYS_CMD, 0, 0, 0);
-            comManagerGetData((int) i, DID_FLASH_CONFIG, 0, 0, 0);
-            comManagerGetData((int) i, DID_EVB_FLASH_CFG, 0, 0, 0);
-        }
-    }
+    // for (int i = ((int) m_comManagerState.devices.size() - 1); i >= 0; i--) {
+    //     // but only if they are of a compatible protocol version
+    //     if (m_comManagerState.devices[i].devInfo.protocolVer[0] == PROTOCOL_VERSION_CHAR0) {
+    //         comManagerGetData((int) i, DID_SYS_CMD, 0, 0, 0);
+    //         comManagerGetData((int) i, DID_FLASH_CONFIG, 0, 0, 0);
+    //         comManagerGetData((int) i, DID_EVB_FLASH_CFG, 0, 0, 0);
+    //     }
+    // }
 
     return m_comManagerState.devices.size() != 0;
 }
@@ -1549,8 +1549,8 @@ void InertialSense::CloseSerialPorts(bool drainBeforeClose)
 {
     for (auto& device : m_comManagerState.devices)
     {
-        if (drainBeforeClose)
-            serialPortDrain(&device.serialPort);
+        // if (drainBeforeClose)
+        //     serialPortDrain(&device.serialPort);
 
         serialPortClose(&device.serialPort);
     }

@@ -101,7 +101,7 @@ cInertialSenseDisplay::cInertialSenseDisplay(eDisplayMode displayMode)
 
 #else
 
-	signal(SIGINT, signalFunction);
+	// signal(SIGINT, signalFunction);
 
 #endif
 
@@ -373,6 +373,7 @@ void cInertialSenseDisplay::SetExitProgram()
 // Return true on refresh
 void cInertialSenseDisplay::ProcessData(p_data_t* data, bool enableReplay, double replaySpeedX)
 {
+	return;
 	if (m_displayMode == DMODE_QUIET)
 	{
 		return;

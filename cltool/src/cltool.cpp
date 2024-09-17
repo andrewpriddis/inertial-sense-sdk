@@ -57,7 +57,7 @@ static bool matches(const char* str, const char* pre)
 
 #define CL_DEFAULT_BAUD_RATE                IS_BAUDRATE_DEFAULT
 #define CL_DEFAULT_DEVICE_PORT              "*"
-#define CL_DEFAULT_DISPLAY_MODE             cInertialSenseDisplay::DMODE_SCROLL
+#define CL_DEFAULT_DISPLAY_MODE             0
 #define CL_DEFAULT_LOG_TYPE                 "raw"
 #define CL_DEFAULT_LOGS_DIRECTORY           DEFAULT_LOGS_DIRECTORY
 #define CL_DEFAULT_ENABLE_LOGGING           false
@@ -130,7 +130,7 @@ void print_dids()
     cltool_outputHelp();
 }
 
-void enable_display_mode(int mode = cInertialSenseDisplay::DMODE_PRETTY)
+void enable_display_mode(int mode = 0)
 {   
     g_commandLineOptions.displayMode = mode;
 }
@@ -321,12 +321,12 @@ bool cltool_parseCommandLine(int argc, char* argv[])
         else if (startsWith(a, "-flashCfg="))
         {
             g_commandLineOptions.flashCfg = &a[10];
-            g_commandLineOptions.displayMode = cInertialSenseDisplay::eDisplayMode::DMODE_QUIET;
+            g_commandLineOptions.displayMode = 0;
         }
         else if (startsWith(a, "-flashCfg"))
         {
             g_commandLineOptions.flashCfg = ".";
-            g_commandLineOptions.displayMode = cInertialSenseDisplay::eDisplayMode::DMODE_QUIET;
+            g_commandLineOptions.displayMode = 0;
         }
         else if (startsWith(a, "-hi") || startsWith(a, "--hi"))
         {
@@ -432,11 +432,11 @@ bool cltool_parseCommandLine(int argc, char* argv[])
         }
         else if (startsWith(a, "-q"))
         {
-            g_commandLineOptions.displayMode = cInertialSenseDisplay::DMODE_QUIET;
+            g_commandLineOptions.displayMode = 0;
         }
         else if (startsWith(a, "-raw-out"))
         {
-            g_commandLineOptions.displayMode = cInertialSenseDisplay::DMODE_RAW_PARSE;
+            g_commandLineOptions.displayMode = 0;
         }
         else if (startsWith(a, "-rp") && (i + 1) < argc)
         {
@@ -475,7 +475,7 @@ bool cltool_parseCommandLine(int argc, char* argv[])
         }
         else if (startsWith(a, "-stats"))
         {
-            enable_display_mode(cInertialSenseDisplay::DMODE_STATS);
+            enable_display_mode(0);
         }
         else if (startsWith(a, "-survey="))
         {
@@ -494,7 +494,7 @@ bool cltool_parseCommandLine(int argc, char* argv[])
         }
         else if (startsWith(a, "-s"))
         {
-            enable_display_mode(cInertialSenseDisplay::DMODE_SCROLL);
+            enable_display_mode(0);
         }
         else if (startsWith(a, "-ub") && (i + 1) < argc)
         {
@@ -507,13 +507,13 @@ bool cltool_parseCommandLine(int argc, char* argv[])
             {
                 g_commandLineOptions.updateFirmwareTarget = fwUpdate::TARGET_GPX1;          // use the new firmware update mechanism and target the GPX specifically
                 g_commandLineOptions.fwUpdateCmds.push_back(string("package=") + string(argv[++i]));
-                enable_display_mode(cInertialSenseDisplay::DMODE_QUIET);                    // Disable ISDisplay cInertialSenseDisplay output
+                enable_display_mode(0);                    // Disable ISDisplay cInertialSenseDisplay output
             }
             else if ((strcmp(a, "-uf-cmd") == 0) && (i + 1) < argc)
             {
                 g_commandLineOptions.updateFirmwareTarget = fwUpdate::TARGET_GPX1;          // use the new firmware update mechanism and target the GPX specifically
                 splitString(string(argv[++i]), ',', g_commandLineOptions.fwUpdateCmds);
-                enable_display_mode(cInertialSenseDisplay::DMODE_QUIET);                    // Disable ISDisplay cInertialSenseDisplay output
+                enable_display_mode(0);                    // Disable ISDisplay cInertialSenseDisplay output
             }
             else
             {
@@ -529,7 +529,7 @@ bool cltool_parseCommandLine(int argc, char* argv[])
         else if (startsWith(a, "-list-devices"))
         {
             g_commandLineOptions.list_devices = true;
-            g_commandLineOptions.displayMode = cInertialSenseDisplay::DMODE_QUIET;
+            g_commandLineOptions.displayMode = 0;
         }
         else if (startsWith(a, "-vd"))
         {
@@ -592,16 +592,16 @@ bool cltool_replayDataLog()
         {
             printf("Device SN%d: \n", dl->SerialNumber());
         }
-        while (((data = logger.ReadData(dl)) != NULL) && !g_inertialSenseDisplay.ExitProgram())
-        {
-            p_data_t d = {data->hdr, data->buf};
-            g_inertialSenseDisplay.ProcessData(&d, g_commandLineOptions.replayDataLog, g_commandLineOptions.replaySpeed);
-            g_inertialSenseDisplay.PrintData();
-        }
+        // while (((data = logger.ReadData(dl)) != NULL) && !g_inertialSenseDisplay.ExitProgram())
+        // {
+        //     p_data_t d = {data->hdr, data->buf};
+        //     g_inertialSenseDisplay.ProcessData(&d, g_commandLineOptions.replayDataLog, g_commandLineOptions.replaySpeed);
+        //     g_inertialSenseDisplay.PrintData();
+        // }
     }
 
     cout << "Done replaying log files: " << g_commandLineOptions.logPath << endl;
-    g_inertialSenseDisplay.Goodbye();
+    // g_inertialSenseDisplay.Goodbye();
     return true;
 }
 
