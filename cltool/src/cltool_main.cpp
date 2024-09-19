@@ -349,10 +349,12 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
         }
         cltool_requestDataSets(inertialSenseInterface, g_commandLineOptions.datasets);
     }
+
     if (g_commandLineOptions.timeoutFlushLoggerSeconds > 0)
     {
         inertialSenseInterface.SetTimeoutFlushLoggerSeconds(g_commandLineOptions.timeoutFlushLoggerSeconds);
     }
+
     if (g_commandLineOptions.magRecal)
     {
         // Enable broadcase of DID_MAG_CAL so we can observe progress and tell when the calibration is done (i.e. DID_MAG_CAL.state: 200=in progress, 201=done).
@@ -360,19 +362,23 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
         // Enable mag recal
         inertialSenseInterface.SendRawData(DID_MAG_CAL, (uint8_t*)&g_commandLineOptions.magRecalMode, sizeof(g_commandLineOptions.magRecalMode), offsetof(mag_cal_t, state));
     }
+
     if (g_commandLineOptions.surveyIn.state)
     {   // Enable mult-axis 
         inertialSenseInterface.SendRawData(DID_SURVEY_IN, (uint8_t*)&g_commandLineOptions.surveyIn, sizeof(survey_in_t), 0);
     }
+
     if (g_commandLineOptions.rmcPreset)
     {
         inertialSenseInterface.BroadcastBinaryDataRmcPreset(g_commandLineOptions.rmcPreset, RMC_OPTIONS_PRESERVE_CTRL);
     }
+
     if (g_commandLineOptions.persistentMessages)
     {   // Save persistent messages to flash
         cout << "Sending save persistent messages." << endl;
         inertialSenseInterface.SendRaw((uint8_t*)NMEA_CMD_SAVE_PERSISTENT_MESSAGES_TO_FLASH, NMEA_CMD_SIZE);
     }
+
     if (g_commandLineOptions.softwareReset)
     {   // Issue software reset
         cout << "Sending software reset." << endl;
@@ -380,6 +386,7 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
         SLEEP_MS(XMIT_CLOSE_DELAY_MS);      // Delay to allow transmit time before port closes
         return false;
     }
+
     if (g_commandLineOptions.sysCommand != 0)
     {   // Send system command to IMX
         cout << "Sending system command: " << g_commandLineOptions.sysCommand;
@@ -428,6 +435,7 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
         SLEEP_MS(XMIT_CLOSE_DELAY_MS);      // Delay to allow transmit time before port closes
         return false;
     }
+
     if (g_commandLineOptions.platformType >= 0 && g_commandLineOptions.platformType < PLATFORM_CFG_TYPE_COUNT)
     {   // Confirm
         cout << "CAUTION!!!\n\nSetting the device(s) platform type in OTP memory.  This can only be done a limited number of times.\n\nPlatform: " << g_commandLineOptions.platformType << "\n\n";
@@ -465,10 +473,17 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
             cout << "Failed to connect to server (base)." << endl;
         }
     }
+
     if (g_commandLineOptions.flashCfg.length() != 0)
     {
         return cltool_updateFlashCfg(inertialSenseInterface, g_commandLineOptions.flashCfg);
     }
+
+    if (g_commandLineOptions.eventLogEnable)
+    {
+        inertialSenseInterface.EnableEventLog(g_commandLineOptions.eventLogEnable, g_commandLineOptions.eventLogDirectory);
+    }
+
     return true;
 }
 

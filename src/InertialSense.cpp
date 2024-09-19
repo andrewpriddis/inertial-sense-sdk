@@ -18,6 +18,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "ISBootloaderDFU.h"
 #include "protocol/FirmwareUpdate.h"
 #include "imx_defaults.h"
+// #include "ISFileManager.h"
+#include <filesystem>
+
 
 using namespace std;
 
@@ -818,6 +821,114 @@ void InertialSense::SetEventFilter(int target, uint32_t msgTypeIdMask, uint8_t p
         comManagerSendData(pHandle, data, DID_EVENT, DID_EVENT_HEADER_SIZE + event.length, 0);
 }
 
+void InertialSense::EnableEventLog(bool enable, std::string directory) 
+{ 
+    m_eventLogEnabled = enable; 
+    m_eventLogDirectory = directory;
+
+    if (!std::filesystem::exists(m_eventLogDirectory)) 
+    {   // Create directory
+        if (!std::filesystem::create_directory(m_eventLogDirectory)) 
+        {
+            std::cerr << "Failed to create directory: " << m_eventLogDirectory << std::endl;
+        }
+    } 
+}
+
+void InertialSense::LogEvent(int pHandle, p_data_t* data)
+{
+    if (!m_eventLogEnabled)
+    {   // Disabled
+        return;
+    }
+
+    did_event_t *event = (did_event_t*)(data->ptr);
+    if (event->msgTypeID > EVENT_MSG_TYPE_ID_MAX)
+    {
+        cout << "Event msgTypeID exceeded EVENT_MSG_TYPE_ID_MAX" << std::endl;
+        return;
+    }
+
+    if (event->length > PKT_BUF_SIZE)
+    {
+        cout << "Event length exceeded PKT_BUF_SIZE" << std::endl;
+        return;
+    }
+
+    int &count = m_eventLogMap[event->msgTypeID];
+
+    string eventdir = m_eventLogDirectory + "/id_" + std::to_string(event->msgTypeID);
+
+    std::ostringstream ss;
+    ss << std::setw(6) << std::setfill('0') << count;
+    string filename = ss.str() + ".bin";
+    string filepath = eventdir + "/" + filename;
+
+    count++;
+
+    // Create directory if it doesn't exist
+    if (!std::filesystem::exists(eventdir)) 
+    {
+        if (!std::filesystem::create_directory(eventdir)) 
+        {
+            std::cerr << "Failed to create directory: " << eventdir << std::endl;
+        }
+    }
+
+    // Open the file in binary mode
+    std::ofstream fs(filepath, std::ios::binary);
+
+    if (!fs.is_open())
+    {   // Failed to open file
+        cout << "Failed to open: " << filepath << std::endl;
+        return;
+    }
+
+    fs.write(reinterpret_cast<const char*>(event->data), event->length);
+
+    fs.close();
+
+
+#if 0
+    // A function to get an ofstream from the map or create a new one if it doesn't exist
+    auto getFileStream = [&m_eventLogMap](event->msgTypeID) -> std::ofstream& 
+    {
+        // Check if the key (filename) exists in the map
+        if (m_eventLogMap.find(filename) == m_eventLogMap.end()) 
+        {
+            // If it doesn't exist, open a new file and insert it into the map
+            m_eventLogMap[filename].open(filename, std::ios::out | std::ios::app);  // Open file in append mode
+            if (!m_eventLogMap[filename].is_open()) 
+            {
+                std::cerr << "Failed to open file: " << filename << std::endl;
+            }
+        }
+        // Return the reference to the ofstream in the map
+        return m_eventLogMap[filename];
+    };
+
+    // Example usage:
+    std::string filename1 = "file1.txt";
+    std::string filename2 = "file2.txt";
+
+    // Get the ofstream for file1.txt and write to it
+    std::ofstream& outFile1 = getFileStream(filename1);
+    outFile1 << "Writing to file1.txt" << std::endl;
+
+
+    // Close all open file streams
+    // for (auto& pair : m_eventLogMap) 
+    // {
+    //     if (pair.second.is_open()) 
+    //     {
+    //         pair.second.close();
+    //     }
+    // }
+#endif
+
+
+}
+
 // This method uses DID_SYS_PARAMS.flashCfgChecksum to determine if the local flash config is synchronized.
 void InertialSense::SyncFlashConfig(unsigned int timeMs)
 {
@@ -1011,6 +1122,7 @@ void InertialSense::ProcessRxData(int pHandle, p_data_t* data)
     switch (data->hdr.id)
     {
         case DID_DEV_INFO:          device.devInfo = *(dev_info_t*)data->ptr;                               break;
+        case DID_EVENT:             LogEvent(pHandle, data);                                                break;
         case DID_SYS_CMD:           device.sysCmd = *(system_command_t*)data->ptr;                          break;
         case DID_SYS_PARAMS:        
             copyDataPToStructP(&device.sysParams, data, sizeof(sys_params_t));      

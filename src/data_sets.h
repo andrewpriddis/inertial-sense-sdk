@@ -4882,6 +4882,7 @@ enum eEventMsgTypeID
     EVENT_MSG_TYPE_ID_SER0_CFG          = 29,
     EVENT_MSG_TYPE_ID_DMA_RX_0_REG      = 30,
     EVENT_MSG_TYPE_ID_GPIO_RX_0_REG     = 31,
+    EVENT_MSG_TYPE_ID_MAX               = 31,
 
     EVENT_MSG_TYPE_ID_FILTER_RESPONSE   = (uint16_t)-4,
     EVENT_MSG_TYPE_ID_ENA_GNSS1_FILTER  = (uint16_t)-3,

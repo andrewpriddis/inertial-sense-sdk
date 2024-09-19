@@ -108,6 +108,8 @@ typedef struct cmd_options_s // we need to name this to make MSVC happy, since w
 	uint32_t runDuration = 0;				// Run for this many millis before exiting (0 = indefinitely)
 	bool list_devices = false;				// if true, dumps results of findDevices() including port name.
 	EVFContainer_t evFCont = {0};
+	bool eventLogEnable = false;
+	std::string eventLogDirectory = "events";
 
 	bool disableDeviceValidation = false;	// Keep port(s) open even if no devices response is received.
 } cmd_options_t;

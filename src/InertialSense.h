@@ -585,6 +585,8 @@ public:
     InertialSense::com_manager_cpp_state_t* ComManagerState() { return &m_comManagerState; }
     ISDevice* ComManagerDevice(int pHandle=0) { if (pHandle >= (int)m_comManagerState.devices.size()) return NULLPTR; return &(m_comManagerState.devices[pHandle]); }
 
+    void EnableEventLog(bool enable, std::string directory="events");
+
 protected:
     bool OnClientPacketReceived(const uint8_t* data, uint32_t dataLength);
     void OnClientConnecting(cISTcpServer* server) OVERRIDE;
@@ -628,6 +630,10 @@ private:
     mul_msg_stats_t m_serverMessageStats = {};
     unsigned int m_syncCheckTimeMs = 0;
 
+    bool                            m_eventLogEnabled = false;
+    std::string                     m_eventLogDirectory = "events";
+    std::map<int, int>              m_eventLogMap;
+
     // returns false if logger failed to open
     bool UpdateServer();
     bool UpdateClient();
@@ -643,6 +649,8 @@ private:
     static void BootloadStatusUpdate(void* obj, const char* str);
     void SyncFlashConfig(unsigned int timeMs);
     void UpdateFlashConfigChecksum(nvm_flash_cfg_t &flashCfg);
+
+    void LogEvent(int pHandle, p_data_t* data);
 };
 
 #endif

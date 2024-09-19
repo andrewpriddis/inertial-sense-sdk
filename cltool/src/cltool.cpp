@@ -248,6 +248,14 @@ bool cltool_parseCommandLine(int argc, char* argv[])
                 return false;
             }
         }
+        else if (startsWith(a, "-elog"))
+        {   // Event logging to file
+            g_commandLineOptions.eventLogEnable = true;
+            if (startsWith(a, "-elog="))
+            {
+                g_commandLineOptions.eventLogDirectory = &a[6];
+            }
+        }
         else if (startsWith(a, "-evf="))
         {
             g_commandLineOptions.evFCont.sendEVF = true;
@@ -614,8 +622,10 @@ void cltool_outputUsage()
 	cout << boldOff;
 	cout << "-----------------------------------------------------------------" << endlbOn;
 	cout << "CLTool - " << boldOff << cltool_version() << endl;
+
 	cout << endl;
 	cout << "    Command line utility for communicating, logging, and updating firmware with Inertial Sense product line." << endl;
+
 	cout << endlbOn;
 	cout << "EXAMPLES" << endlbOff;
 	cout << "    " << APP_NAME << APP_EXT << " -c "  <<     EXAMPLE_PORT << " -did DID_INS_1 DID_GPS1_POS DID_PIMU " << EXAMPLE_SPACE_1 << boldOff << " # stream DID messages" << endlbOff;
@@ -628,10 +638,12 @@ void cltool_outputUsage()
 	cout << "    " << APP_NAME << APP_EXT << " -c * -baud=921600              "                    << EXAMPLE_SPACE_2 << boldOff << " # 921600 bps baudrate on all serial ports" << endlbOff;
 	cout << "    " << APP_NAME << APP_EXT << " -rp " <<     EXAMPLE_LOG_DIR                                              << boldOff << " # replay log files from a folder" << endlbOff;
 	cout << "    " << APP_NAME << APP_EXT << " -c "  <<     EXAMPLE_PORT << " -rover=RTCM3:192.168.1.100:7777:mount:user:password" << boldOff << "    # Connect to RTK NTRIP base" << endlbOn;
+
 	cout << endlbOn;
 	cout << "EXAMPLES (Firmware Update)" << endlbOff;
 	cout << "    " << APP_NAME << APP_EXT << " -c "  <<     EXAMPLE_PORT << " -ufpkg fw/IS-firmware.fpkg" << boldOff << endlbOff;
 	cout << "    " << APP_NAME << APP_EXT << " -c "  <<     EXAMPLE_PORT << " -uf " << EXAMPLE_FIRMWARE_FILE << " -ub " << EXAMPLE_BOOTLOADER_FILE << " -uv" << boldOff << endlbOff;
+
 	cout << endlbOn;
 	cout << "OPTIONS (General)" << endl;
 	cout << "    -baud=" << boldOff << "BAUDRATE  Set serial port baudrate.  Options: " << IS_BAUDRATE_115200 << ", " << IS_BAUDRATE_230400 << ", " << IS_BAUDRATE_460800 << ", " << IS_BAUDRATE_921600 << " (default)" << endlbOn;
@@ -672,6 +684,8 @@ void cltool_outputUsage()
     cout << "         msgTypeIdMask:" << boldOff << " id=[Protocol ID's to be enabled. Mask together protocol EV_ID value (0x01 << EV_ID)." << endlbOn;
     cout << "         " << boldOff << "    See:eEventProtocol for protocol EV_ID values]. It is recommended to mask (0x01 << EVENT_MSG_TYPE_ID_ASCII)" << endlbOn;
     cout << "         " << boldOff << "    at all times to allow broadcast of critical errors." << endlbOn;
+    cout << "    -elog" << boldOff << "           Enable event logging to file. Default directory is `./event`." << endlbOn;
+    cout << "    -elog=[dir]" << boldOff << "     Enable event logging to file and specify directory where event logs are saved." << endlbOn;
 
 	cout << endlbOn;
 	cout << "OPTIONS (Firmware Update)" << endl;
@@ -693,6 +707,7 @@ void cltool_outputUsage()
 	cout << "    -persistent    " << boldOff << " Save current streams as persistent messages enabled on startup" << endlbOn;
 	cout << "    -presetPPD     " << boldOff << " Stream preset post processing datasets (PPD)" << endlbOn;
 	cout << "    -presetINS2    " << boldOff << " Stream preset INS2 datasets" << endlbOn;
+
 	cout << endlbOn;
 	cout << "OPTIONS (Logging to file, disabled by default)" << endl;
 	cout << "    -lon" << boldOff << "            Enable logging" << endlbOn;
@@ -704,10 +719,12 @@ void cltool_outputUsage()
 	cout << "    -r" << boldOff << "              Replay data log from default path" << endlbOn;
 	cout << "    -rp " << boldOff << "PATH        Replay data log from PATH" << endlbOn;
 	cout << "    -rs=" << boldOff << "SPEED       Replay data log at x SPEED. SPEED=0 runs as fast as possible." << endlbOn;
+
 	cout << endlbOn;
 	cout << "OPTIONS (Read flash configuration from command line)" << endl;
 	cout << "    -flashCfg" << boldOff  <<  "                                   # List all \"keys\" and \"values\"" << endlbOn;
 	cout << "   \"-flashCfg=[key]|[key]|[key]\"" << boldOff << "                # List select values" <<  endlbOn;
+
 	cout << endl;
 	cout << "OPTIONS (Write flash configuration from command line)" << endl;
 	cout << "   \"-flashCfg=[key]=[value]|[key]=[value]\"" << boldOff << "      # Set key / value pairs in flash config. " << endlbOn;
@@ -715,6 +732,7 @@ void cltool_outputUsage()
 	cout << "EXAMPLES" << endlbOn;
 	cout << "    " << APP_NAME << APP_EXT << " -c " << EXAMPLE_PORT << " -flashCfg  " << boldOff << "# Read from device and print all keys and values" << endlbOn;
 	cout << "    " << APP_NAME << APP_EXT << " -c " << EXAMPLE_PORT << " \"-flashCfg=insOffset[1]=1.2|=ser2BaudRate=115200\"  " << boldOff << "# Set multiple values" << endlbOn;
+
 	cout << endl;
 	cout << "OPTIONS (RTK Rover / Base)" << endlbOn;
 	cout << "    -rover=" << boldOff << "[type]:[IP or URL]:[port]:[mountpoint]:[username]:[password]" << endl;
@@ -727,6 +745,7 @@ void cltool_outputUsage()
 	cout << "            -base=TCP::7777                            (IP is optional)" << endl;
 	cout << "            -base=TCP:192.168.1.43:7777" << endl;
 	cout << "            -base=SERIAL:" << EXAMPLE_PORT << ":921600" << endl;
+
 	cout << endlbOn;	
 	cout << "CLTool - " << boldOff << cltool_version() << endl;
 
