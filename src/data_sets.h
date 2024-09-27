@@ -133,6 +133,8 @@ typedef uint32_t eDataIDs;
 #define DID_IMU_RAW                     (eDataIDs)97 /** (imu_t) IMU data averaged from DID_IMU3_RAW.  Use this IMU data for output data rates faster than DID_FLASH_CONFIG.startupNavDtMs.  Otherwise we recommend use of DID_IMU or DID_PIMU as they are oversampled and contain less noise. */
 #define DID_FIRMWARE_UPDATE             (eDataIDs)98 /** (firmware_payload_t) firmware update payload */
 #define DID_RUNTIME_PROFILER            (eDataIDs)99 /** INTERNAL USE ONLY (runtime_profiler_t) System runtime profiler */
+#define DID_GPS1_POS_INT                (eDataIDs)100 /** (gps_int_t) GPS1 position using an integer based representation */
+#define DID_GPS2_POS_INT                (eDataIDs)101 /** (gps_int_t) GPS2 position using an integer based representation */
 
 #define DID_EVENT                       (eDataIDs)119 /** INTERNAL USE ONLY (did_event_t)*/
 
@@ -157,7 +159,7 @@ typedef uint32_t eDataIDs;
 
 /** Count of data ids (including null data id 0) - MUST BE MULTPLE OF 4 and larger than last DID number! */
 #define DID_COUNT		(eDataIDs)132	// Used in SDK
-#define DID_COUNT_UINS	(eDataIDs)100	// Used in IMX
+#define DID_COUNT_UINS	(eDataIDs)104	// Used in IMX
 
 /** Maximum number of data ids */
 #define DID_MAX_COUNT 256
@@ -950,6 +952,28 @@ typedef struct PACKED
 
 } gps_pos_t;
 
+/** (DID_GPS1_POS_INT, DID_GPS2_POS_INT) GPS position data */
+typedef struct PACKED
+{
+    /** GPS number of weeks since January 6th, 1980 */
+    uint32_t                week;
+
+    /** GPS time of week (since Sunday morning) in milliseconds */
+    uint32_t                timeOfWeekMs;
+
+    /** (see eGpsStatus) GPS status: [0x000000xx] number of satellites used, [0x0000xx00] fix type, [0x00xx0000] status flags, NMEA input flag */
+    uint32_t                status;
+    
+    /** Position - WGS84 latitude, longitude, height above ellipsoid (not MSL) (degrees, m) whole portion of value (pre-decimal point) expressed in integer form. */
+    int16_t                  llaWhole[3];
+
+     /** Position - WGS84 latitude, longitude, height above ellipsoid (not MSL) (degrees, m) decimal portion of value (post-decimal point) expressed in integer form. */
+    uint32_t                 llaDecimal[3];
+
+    /** Average of all non-zero satellite carrier to noise ratios (signal strengths) in dBHz */
+    float                   cnoMean;
+
+} gps_int_t;
 
 /** (DID_GPS1_VEL, DID_GPS2_VEL) GPS velocity data */
 typedef struct PACKED

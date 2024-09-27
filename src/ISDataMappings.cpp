@@ -171,6 +171,8 @@ static void PopulateSizeMappings(uint32_t sizeMap[DID_COUNT])
     sizeMap[DID_GPX_BIT] = sizeof(gpx_bit_t);
     sizeMap[DID_GPX_RMC] = sizeof(rmc_t);
     sizeMap[DID_GPX_PORT_MONITOR] = sizeof(port_monitor_t);
+    sizeMap[DID_GPS1_POS_INT] = sizeof(gps_int_t);
+    sizeMap[DID_GPS2_POS_INT] = sizeof(gps_int_t);
     
 
 #ifdef USE_IS_INTERNAL
@@ -599,6 +601,25 @@ static void PopulateGpsPosMappings(map_name_to_info_t mappings[DID_COUNT], uint3
     ADD_MAP(m, totalSize, "satsUsed", satsUsed, 0, DataTypeUInt8, uint8_t, 0);
     ADD_MAP(m, totalSize, "cnoMeanSigma", cnoMeanSigma, 0, DataTypeUInt8, uint8_t, 0);
     ADD_MAP(m, totalSize, "reserved", reserved, 0, DataTypeUInt8, uint8_t, 0);
+
+    ASSERT_SIZE(totalSize);
+}
+
+static void PopulateGpsPosIntMappings(map_name_to_info_t mappings[DID_COUNT], uint32_t id)
+{
+    typedef gps_int_t MAP_TYPE;
+    map_name_to_info_t& m = mappings[id];
+    uint32_t totalSize = 0;
+    ADD_MAP(m, totalSize, "week", week, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "timeOfWeekMs", timeOfWeekMs, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "status", status, 0, DataTypeUInt32, uint32_t, DataFlagsDisplayHex);
+    ADD_MAP(m, totalSize, "llaWhole[0]", llaWhole[0], 0, DataTypeInt16, int16_t&, 0);
+    ADD_MAP(m, totalSize, "llaWhole[1]", llaWhole[1], 0, DataTypeInt16, int16_t&, 0);
+    ADD_MAP(m, totalSize, "llaWhole[2]", llaWhole[2], 0, DataTypeInt16, int16_t&, 0);
+    ADD_MAP(m, totalSize, "llaDecimal[0]", llaDecimal[0], 0, DataTypeUInt32, uint32_t&, 0);
+    ADD_MAP(m, totalSize, "llaDecimal[1]", llaDecimal[1], 0, DataTypeUInt32, uint32_t&, 0);
+    ADD_MAP(m, totalSize, "llaDecimal[2]", llaDecimal[2], 0, DataTypeUInt32, uint32_t&, 0);
+    ADD_MAP(m, totalSize, "cnoMean", cnoMean, 0, DataTypeFloat, float, 0);
 
     ASSERT_SIZE(totalSize);
 }
@@ -2746,8 +2767,8 @@ const char* const cISDataMappings::m_dataIdNames[] =
     "DID_IMU_RAW",                      // 97 
     "UNUSED_98",                        // 98 
     "UNUSED_99",                        // 99 
-    "UNUSED_100",                       // 100
-    "UNUSED_101",                       // 101
+    "DID_GPS1_POS_INT",                 // 100
+    "DID_GPS2_POS_INT",                 // 101
     "UNUSED_102",                       // 102
     "UNUSED_103",                       // 103
     "UNUSED_104",                       // 104
@@ -2811,6 +2832,8 @@ cISDataMappings::cISDataMappings()
     PopulateGpsPosMappings(m_lookupInfo, DID_GPS1_RTK_POS);
     PopulateGpsVelMappings(m_lookupInfo, DID_GPS1_VEL);
     PopulateGpsVelMappings(m_lookupInfo, DID_GPS2_VEL);
+    PopulateGpsPosIntMappings(m_lookupInfo, DID_GPS1_POS_INT);
+    PopulateGpsPosIntMappings(m_lookupInfo, DID_GPS2_POS_INT);
     PopulateGpsTimepulseMappings(m_lookupInfo, DID_GPS1_TIMEPULSE);
 #if 0	// Too much data, we don't want to log this. WHJ
     PopulateGpsSatMappings(m_lookupInfo, DID_GPS1_SAT);

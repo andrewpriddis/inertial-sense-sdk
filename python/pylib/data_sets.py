@@ -100,6 +100,11 @@ DID_UNUSED_94                   = 94
 DID_REFERENCE_IMU               = 95
 DID_IMU3_RAW                    = 96
 DID_IMU_RAW                     = 97
+DID_FIRMWARE_UPDATE             = 98
+DID_RUNTIME_PROFILER            = 99
+DID_GPS1_POS_INT                = 100
+DID_GPS2_POS_INT                = 101
+
 DID_EVB_LUNA_VELOCITY_CONTROL   = 114
 
 DID_GPX_DEV_INFO                = 120
