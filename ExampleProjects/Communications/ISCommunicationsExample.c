@@ -20,20 +20,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 static int running = 1;
 
-int set_configuration(serial_port_t *serialPort, is_comm_instance_t *comm)
-{
-    system_command_t cfg;
-    cfg.command = SYS_CMD_ENABLE_SERIAL_PORT_BRIDGE_USB_TO_GPS1;
-    cfg.invCommand = ~cfg.command;
-    // is_comm_set_data(comm, DID_SYS_CMD, 0, sizeof(system_command_t),&cfg);
-	if (is_comm_set_data(comm, DID_SYS_CMD, 0, sizeof(system_command_t), (uint8_t*)&cfg ) < 0)
-	{
-		printf("Failed to encode and write set INS rotation\r\n");
-		return -3;
-	}
-	return 0;
-}
-
 int stop_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *comm)
 {
 	// Stop all broadcasts on the device
@@ -41,6 +27,21 @@ int stop_message_broadcasting(serial_port_t *serialPort, is_comm_instance_t *com
 	if (n != serialPortWrite(serialPort, comm->buf.start, n))
 	{
 		printf("Failed to encode and write stop broadcasts message\r\n");
+		return -3;
+	}
+	return 0;
+}
+
+int set_bridge(serial_port_t *serialPort, is_comm_instance_t *comm)
+{
+	system_command_t cfg;
+	cfg.command = SYS_CMD_ENABLE_SERIAL_PORT_BRIDGE_CUR_PORT_TO_GPS1;
+	cfg.invCommand = ~cfg.command;
+
+	int n = is_comm_set_data(comm, DID_SYS_CMD, offsetof(system_command_t, command), sizeof(system_command_t), &cfg);
+	if (n != serialPortWrite(serialPort, comm->buf.start, n))
+	{
+		printf("Failed to write save persistent message\r\n");
 		return -3;
 	}
 	return 0;
@@ -90,7 +91,7 @@ int main(int argc, char* argv[])
 
 
 	// STEP 5: Set configuration
-	if ((error = set_configuration(&serialPort, &comm)))
+	if ((error = set_bridge(&serialPort, &comm)))
 	{
 		return error;
 	}
