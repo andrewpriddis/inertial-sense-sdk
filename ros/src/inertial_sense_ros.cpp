@@ -324,6 +324,7 @@ void InertialSenseROS::load_params(YAML::Node &node)
     YAML::Node rtkRoverNode = ph.node(node, "rtk_rover");
     if (rtkRoverNode.IsDefined() && !rtkRoverNode.IsNull())
         RTK_rover_ = new RtkRoverProvider(rtkRoverNode);
+    ph.nodeParam("compassing_enable", GNSS_Compass_, false);
 
     YAML::Node rtkBaseNode = ph.node(node, "rtk_base");
     if (rtkBaseNode.IsDefined() && !rtkBaseNode.IsNull())
