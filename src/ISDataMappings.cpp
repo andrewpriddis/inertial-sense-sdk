@@ -154,6 +154,7 @@ static void PopulateSizeMappings(uint32_t sizeMap[DID_COUNT])
     sizeMap[DID_REFERENCE_IMU] = sizeof(imu_t);
     sizeMap[DID_REFERENCE_PIMU] = sizeof(pimu_t);
     sizeMap[DID_REFERENCE_MAGNETOMETER] = sizeof(magnetometer_t);
+    sizeMap[DID_BRIO_DATA] = sizeof(briometrix_t); 
 
     sizeMap[DID_EVB_STATUS] = sizeof(evb_status_t);
     sizeMap[DID_EVB_FLASH_CFG] = sizeof(evb_flash_cfg_t);
@@ -1834,6 +1835,60 @@ static void PopulateCanConfigMappings(map_name_to_info_t mappings[DID_COUNT])
     ASSERT_SIZE(totalSize);
 }
 
+static void PopulateBrioMappings(map_name_to_info_t mappings[DID_COUNT])
+{
+    typedef briometrix_t MAP_TYPE;
+    map_name_to_info_t& m = mappings[DID_BRIO_DATA];
+    uint32_t totalSize = 0;
+    ADD_MAP(m, totalSize, "towOffset", towOffset_s, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "hAcc", hAcc, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "vAcc", vAcc, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "n_sats", n_sats, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "gps_status", gps_status, 0, DataTypeUInt32, uint32_t, 0); 
+    ADD_MAP(m, totalSize, "timeOfWeekINS1_s", timeOfWeekINS1_s, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "roll", roll, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "pitch", pitch, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "yaw", yaw, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "slope_percent", slope_percent, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "cross_slope_percent", cross_slope_percent, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "latitude", latitude, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "longitude", longitude, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "altitude", altitude, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "latitudeRaw", latitudeRaw, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "longitudeRaw", longitudeRaw, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "altitudeRaw", altitudeRaw, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "speedX", speedX, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "speedY", speedY, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "speedZ", speedZ, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "ins_status", ins_status, 0, DataTypeUInt32, uint32_t, 0); 
+    // ADD_MAP(m, totalSize, "soln_status", soln_status, 0, DataTypeUInt8, uint8_t, 0); 
+    ADD_MAP(m, totalSize, "gpsspeedX", gpsspeedX, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "gpsspeedY", gpsspeedY, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "gpsspeedZ", gpsspeedZ, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "week", week, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "timeOfWeekINS2_s", timeOfWeekINS2_s, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "q0", q0, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "q1", q1, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "q2", q2, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "q3", q3, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "gravX", gravX, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "gravY", gravY, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "gravZ", gravZ, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "timeIMU_s", timeIMU_s, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "aX", aX, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "aY", aY, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "aZ", aZ, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "gX", gX, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "gY", gY, 0, DataTypeFloat, float, 0); 
+    ADD_MAP(m, totalSize, "gZ", gZ, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "groundVehicleStatus", groundVehicleStatus, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "status", status, 0, DataTypeUInt16, uint16_t, 0);
+    ADD_MAP(m, totalSize, "loggerMode", loggerMode, 0, DataTypeUInt8, uint8_t, 0);
+    // ADD_MAP(m, totalSize, "reserved", reserved, 0, DataTypeUInt16, uint16_t, 0);
+
+    ASSERT_SIZE(totalSize);
+}
+
 static void PopulateDiagMsgMappings(map_name_to_info_t mappings[DID_COUNT])
 {
     typedef diag_msg_t MAP_TYPE;
@@ -2857,6 +2912,7 @@ cISDataMappings::cISDataMappings()
 //    PopulateRtosInfoMappings(m_lookupInfo);
     PopulateDiagMsgMappings(m_lookupInfo);
     PopulateCanConfigMappings(m_lookupInfo);
+    PopulateBrioMappings(m_lookupInfo);
 
 #ifdef USE_IS_INTERNAL
 

@@ -56,7 +56,8 @@ public:
 		LOGTYPE_SDAT,		// sorted
 		LOGTYPE_CSV,
 		LOGTYPE_KML,
-		LOGTYPE_JSON
+		LOGTYPE_JSON,
+        LOGTYPE_BRIO
 	};
 
 	static const std::string g_emptyString;
@@ -182,6 +183,10 @@ public:
 		else if (logTypeString == "raw")
 		{
 			return cISLogger::eLogType::LOGTYPE_RAW;
+		}
+        else if (logTypeString == "brio")
+		{
+            return cISLogger::eLogType::LOGTYPE_BRIO;
 		}
 		return cISLogger::eLogType::LOGTYPE_DAT;
 	}
