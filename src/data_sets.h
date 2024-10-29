@@ -133,6 +133,7 @@ typedef uint32_t eDataIDs;
 #define DID_IMU_RAW                     (eDataIDs)97 /** (imu_t) IMU data averaged from DID_IMU3_RAW.  Use this IMU data for output data rates faster than DID_FLASH_CONFIG.startupNavDtMs.  Otherwise we recommend use of DID_IMU or DID_PIMU as they are oversampled and contain less noise. */
 #define DID_FIRMWARE_UPDATE             (eDataIDs)98 /** (firmware_payload_t) firmware update payload */
 #define DID_RUNTIME_PROFILER            (eDataIDs)99 /** INTERNAL USE ONLY (runtime_profiler_t) System runtime profiler */
+#define DID_BRIO_DATA                   (eDataIDs)110 /** (briometrix_t) Custom dataset for brio*/
 
 #define DID_EVENT                       (eDataIDs)119 /** INTERNAL USE ONLY (did_event_t)*/
 
@@ -5341,6 +5342,161 @@ typedef struct PACKED
     uint32_t				can_receive_address;
 
 } can_config_t;
+
+
+/** (DID_BRIO_DATA) Struct that holds data that represents one line of results in the csv file */
+typedef struct
+{
+    ///* UTC offset in seconds (converts between startup and tow)
+	double towOffset_s;
+	///* Horizontal GPS accuracy in meters
+	float hAcc;
+	///* Vertical GPS accuracy in meters
+	float vAcc;
+	///* The number of satellites used
+	uint8_t n_sats;
+	///* Bitfield to describe the GPS receiver status
+	uint32_t gps_status;
+	///* time since Sunday morning GMT or since startup if no GPS lock yet
+	double timeOfWeekINS1_s;
+	///* Euler roll in radians
+	float roll;
+	///* Euler pitch in radians
+	float pitch;
+	///* Euler yaw in radians
+	float yaw;
+
+    ///* Euler roll in radians
+	float cross_slope_percent;
+	///* Euler pitch in radians
+	float slope_percent;
+
+	///* INS Latitude
+	double latitude;
+	///* INS Longitude
+	double longitude;
+	///* INS Altitude
+	double altitude;
+    ///* GPS Latitude
+	double latitudeRaw;
+	///* GPS Longitude
+	double longitudeRaw;
+	///* GPS Altitude
+	double altitudeRaw;
+	///* Horizontal speed component in m/s
+	float speedX;
+	///* Horizontal speed component in m/s
+	float speedY;
+	///* Vertical speed component in m/s
+	float speedZ;
+	///* INS status flags
+	uint32_t ins_status;
+	// /// Solution status flags  //TODO: Not sure what was intended here.
+	// uint8_t soln_status;
+
+
+	///* Raw gps speed in m/s
+	float gpsspeedX;
+	///* Raw gps speed in m/s
+	float gpsspeedY;
+	///* Raw gps speed in m/s
+	float gpsspeedZ;
+	///* Week since Jan 6 1980
+	uint32_t week;
+
+
+	///* Time of week if has GPS lock, time since statrup if no lock
+	double timeOfWeekINS2_s;
+	///* Quaternion component
+	float q0;
+	///* Quaternion component
+	float q1;
+	///* Quaternion component
+	float q2;
+	///* Quaternion component
+	float q3;
+
+	// calculated values from quaternions
+	/*
+	 * gravX = 2 * ((q1 * q3) - (q0 * q2))
+	 * gravY = 2 * ((q0 * q1) + (q2 * q3))
+	 * gravZ = (q0 * q0) - (q1 * q1) - (q2 * q2) + (q3 * q3)
+	 */
+
+	///* Gravity vector x component calculated from quaternions
+	float gravX;
+	///* Gravity vector y component calculated from quaternions
+	float gravY;
+	///* Gravity vector z component calculated from quaternions
+	float gravZ;
+
+
+	///* Time in seconds since startup
+	double timeIMU_s;
+	///* X accel in m/s^2
+	float aX;
+	///* Y accel in m/s^2
+	float aY;
+	///* Z accell in m/s^s
+	float aZ;
+	///* X rotation in rad/s
+	float gX;
+	///* Y rotation in rad/s
+	float gY;
+	///* Z rotation in rad/s
+	float gZ;
+    ///* Ground Vehicle Status
+    uint32_t groundVehicleStatus;
+
+    uint16_t status;
+
+    uint8_t loggerMode; //pause_state;
+
+} briometrix_t;
+
+enum eBrioLoggerStatus
+{
+    GPS_DATA_RX                     = (int)0x00000001,
+    BASE_DATA_RX                    = (int)0x00000002,
+    RTK_FIX                         = (int)0x00000004,
+    NAV_MODE                        = (int)0x00000008,
+    GV_STATUS_CAL_GOOD              = (int)0x00000010,
+    GV_STATUS_LEARNING_REQ          = (int)0x00000020,
+    RESET_REQ                       = (int)0x00000040,
+    DEAD_RECKONING                  = (int)0x00000080,
+    LOGGER_ON                       = (int)0x00000100,
+    VIDEO_ON                        = (int)0x00000200,
+    ON_PATH                         = (int)0x00000400,
+    ON_RAMP                         = (int)0x00000800,
+    ON_CROSSING                     = (int)0x00001000,
+    PAUSE                           = (int)0x00002000,
+    CMP_FIX                         = (int)0x00004000,
+    GPS_AID_HEADING                 = (int)0x00008000
+};
+
+enum eBrioLoggerStates
+{
+    LOG_FOOTPATH    = 1,
+    LOG_CROSSING    = 2,
+    LOG_RAMP        = 3,
+    LOG_PAUSE       = 4,
+    LOG_FOOTPATH_START = 11,
+    LOG_CROSSING_START = 22,
+    LOG_RAMP_START = 33,
+    LOG_PAUSE_START = 44
+};
+
+enum eBrioMessageEnabled
+{
+    GPS1P = 0x01,
+    GPS1V = 0x02,
+    GPS1Re= 0x04,
+    INS1 = 0x08,
+    IMU = 0x10,
+    INS2 = 0x20,
+    GV = 0x40,
+    GPS1R = 0x80 //Not using this message
+};
 
 #if defined(INCLUDE_LUNA_DATA_SETS)
 #include "luna_data_sets.h"
