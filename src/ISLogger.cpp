@@ -260,6 +260,7 @@ std::shared_ptr<cDeviceLog> cISLogger::registerDevice(ISDevice& device) {
         case LOGTYPE_RAW:   device.devLogger = make_shared<cDeviceLogRaw>(&device);     break;
 #if !defined(PLATFORM_IS_EVB_2) || !PLATFORM_IS_EVB_2
         case LOGTYPE_SDAT:  device.devLogger = make_shared<cDeviceLogSorted>(&device);  break;
+        case LOGTYPE_BRIO:
         case LOGTYPE_CSV:   device.devLogger = make_shared<cDeviceLogCSV>(&device);     break;
         case LOGTYPE_JSON:  device.devLogger = make_shared<cDeviceLogJSON>(&device);    break;
         case LOGTYPE_KML:   device.devLogger = make_shared<cDeviceLogKML>(&device);     break;
