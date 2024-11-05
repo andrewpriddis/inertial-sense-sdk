@@ -1,3 +1,4 @@
+import platform
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys
@@ -26,6 +27,10 @@ class get_pybind_include(object):
         import pybind11
         return pybind11.get_include(self.user)
 
+if platform.system() == 'Windows':
+    macros = [("UNICODE", "1")]     # Necessary for ISFileManager.cpp
+else:
+    macros = []
 
 ext_modules = [
     Extension('log_reader',
@@ -34,7 +39,6 @@ ext_modules = [
          '../../src/com_manager.c',
          '../../src/data_sets.c',
          '../../src/DataChunk.cpp',
-         '../../src/DataChunkSorted.cpp',
          '../../src/DataCSV.cpp',
          '../../src/DataJSON.cpp',
          '../../src/DataKML.cpp',
@@ -44,7 +48,6 @@ ext_modules = [
          '../../src/DeviceLogKML.cpp',
          '../../src/DeviceLogRaw.cpp',
          '../../src/DeviceLogSerial.cpp',
-         '../../src/DeviceLogSorted.cpp',
          '../../src/ihex.c',
          '../../src/ISComm.c',
          '../../src/ISDataMappings.cpp',
@@ -71,6 +74,7 @@ ext_modules = [
          '../../src/tinyxmlparser.cpp',
          '../../src/util/md5.cpp',
          ],
+        define_macros=macros,
         include_dirs = [
             # Path to pybind11 headers
             'include',

@@ -80,6 +80,7 @@ class logInspectorInternal(LogInspectorWindow):
         self.addListItem('Allan Var. Accel', 'allanVarianceAcc')
         self.addListItem('Mag Decl.', 'magDec')
         self.addListItem('Wheel Encoder', 'wheelEncoder')
+        self.addListItem('Ground Vehicle Status', 'groundVehicleStatus')
         self.addListItem('Ground Vehicle', 'groundVehicle')
         self.addListItem('Whl Ctrl Time', 'wheelControllerTime')
         self.addListItem('Whl Ctrl Vel', 'wheelControllerVel')
@@ -152,7 +153,9 @@ class logInspectorInternal(LogInspectorWindow):
 
     def createListGps(self):
         super(logInspectorInternal, self).createListGps()
-        self.addListItem('GPX Debug', 'gpxDebugfArray')
+        self.addListItem('GNSS Ephemeris', 'gnssEphemeris')
+        self.addListItem('GPX Debug Float', 'gpxDebugfArray')
+        self.addListItem('GPX Debug Int', 'gpxDebugiArray')
 
 def kill_handler(*args):
     instance = QApplication.instance()

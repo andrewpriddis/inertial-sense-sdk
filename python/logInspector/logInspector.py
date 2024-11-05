@@ -88,15 +88,15 @@ def setDataInformationDirectory(path, startMode=START_MODE_HOT):
         data['dataInfo']['dataDirectory'] = os.path.dirname(path).replace('\\','/')
         data['dataInfo']['subDirectories'] = [os.path.basename(path)]
         serialnumbers = []
-        logtype = 'DAT'
+        logtype = 'RAW'
         for root, dirs, files in os.walk(path):
             for filename in files:
                 if "LOG_SN" in filename:
                     serialnum = re.search(r'\d+', filename).group()
                     if serialnum not in serialnumbers:
                         serialnumbers += [serialnum]
-                if ".raw" in filename.lower():
-                    logtype = "RAW"
+                if ".dat" in filename.lower():
+                    logtype = "DAT"
 
         data['processData'] = {}
         data['processData']['datasets'] = [{}]
@@ -399,6 +399,8 @@ class LogInspectorWindow(QMainWindow):
         self.addListItem('GPS LLA', 'gpsLLA')
         self.addListItem('GPS 1 Stats', 'gpsStats')
         self.addListItem('GPS 2 Stats', 'gps2Stats')
+        self.addListItem('GPX Status', 'gpxStatus')
+        self.addListItem('GPX HDW Status', 'gpxHdwStatus')
         self.addListItem('RTK Pos Stats', 'rtkPosStats')
         self.addListItem('RTK Cmp Stats', 'rtkCmpStats')
         self.addListItem('RTK Cmp BaseVector', 'rtkBaselineVector')
@@ -458,9 +460,12 @@ class LogInspectorWindow(QMainWindow):
         self.checkboxResidual.stateChanged.connect(self.changeResidualCheckbox)
         self.checkboxTime = QCheckBox("Timestamp", self)
         self.checkboxTime.stateChanged.connect(self.changeTimeCheckbox)
+        self.xAxisSample = QCheckBox("XAxis Msg Index", self)
+        self.xAxisSample.stateChanged.connect(self.changeXAxisSampleCheckbox)
         self.LayoutOptions = QVBoxLayout()
         self.LayoutOptions.addWidget(self.checkboxResidual)
         self.LayoutOptions.addWidget(self.checkboxTime)
+        self.LayoutOptions.addWidget(self.xAxisSample)
         self.LayoutOptions.setSpacing(0)
         self.LayoutBelowPlotSelection = QHBoxLayout()
         self.LayoutBelowPlotSelection.addLayout(self.LayoutOptions)
@@ -554,6 +559,7 @@ class LogInspectorWindow(QMainWindow):
         downsampleLabel = QLabel()
         downsampleLabel.setText("DS")
         self.downSampleInput = QSpinBox()
+        self.downSampleInput.setMinimum(1)
         self.downSampleInput.setValue(self.downsample)
         self.toolLayout.addWidget(downsampleLabel)
         self.toolLayout.addWidget(self.downSampleInput)
@@ -576,6 +582,11 @@ class LogInspectorWindow(QMainWindow):
             self.plotter.enableTimestamp(state)
             self.updatePlot()
 
+    def changeXAxisSampleCheckbox(self, state):
+        if self.plotter:
+            self.plotter.enableXAxisSample(state)
+            self.updatePlot()
+
     def saveAllPlotsToFile(self):
         if self.log == None:
             print("Log not opened.  Please select a log directory.")
@@ -589,7 +600,7 @@ class LogInspectorWindow(QMainWindow):
         self.plotter.save = False
 
     def changeDownSample(self, val):
-        self.downsample = val
+        self.downsample = max(val, 1)
         self.plotter.setDownSample(self.downsample)
         if self.log != None:
             self.updatePlot()

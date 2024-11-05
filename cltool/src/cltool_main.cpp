@@ -136,9 +136,25 @@ static void display_logger_status(InertialSense* i, bool refreshDisplay=false)
 
     float logSize = logger.LogSizeAll();
     if (logSize < 0.5e6f)
-        printf("\nLogging %.1f KB to: %s\n", logSize * 1.0e-3f, logger.LogDirectory().c_str());
+        printf("\nLogging %.1f KB to: %s", logSize * 1.0e-3f, logger.LogDirectory().c_str());
     else
-        printf("\nLogging %.2f MB to: %s\n", logSize * 1.0e-6f, logger.LogDirectory().c_str());
+        printf("\nLogging %.2f MB to: %s", logSize * 1.0e-6f, logger.LogDirectory().c_str());
+
+    // Disk usage
+    if (logger.MaxDiskSpaceMB() > 0.0f)
+    {   // Limit enabled
+        float percentUsed = 100.0f * logger.UsedDiskSpaceMB() / logger.MaxDiskSpaceMB();
+        printf("      %s disk usage/limit: %.0f/%.0f MB (%.0f%%) ", logger.RootDirectory().c_str(), logger.UsedDiskSpaceMB(), logger.MaxDiskSpaceMB(), percentUsed);
+        if (percentUsed > 98)
+        {
+            printf("...deleting old logs ");
+        }
+    }
+    else
+    {   // Limit disabled
+        printf(",    %s disk usage: %.0f MB ", logger.RootDirectory().c_str(), logger.UsedDiskSpaceMB());
+    }
+    printf("\n");
 }
 
 static int cltool_errorCallback(unsigned int port, is_comm_instance_t* comm)
@@ -192,7 +208,7 @@ static int cltool_errorCallback(unsigned int port, is_comm_instance_t* comm)
 
     ptr += SNPRINTF(ptr, ptrEnd - ptr, BLUE "[PREAMB] " RED "%02x %02x ", ((rxPkt->preamble >> 8) & 0xFF), (rxPkt->preamble & 0xFF));
     ptr += SNPRINTF(ptr, ptrEnd - ptr, BLUE "[Flags: " YELLOW "%u" BLUE "] " RED "%02x ", rxPkt->flags, rxPkt->flags);
-    ptr += SNPRINTF(ptr, ptrEnd - ptr, BLUE "[Id: " YELLOW "%s" BLUE "] " RED "%02x ", cISDataMappings::GetDataSetName(rxPkt->dataHdr.id), rxPkt->dataHdr.id);
+    ptr += SNPRINTF(ptr, ptrEnd - ptr, BLUE "[Id: " YELLOW "%s" BLUE "] " RED "%02x ", cISDataMappings::DataName(rxPkt->dataHdr.id), rxPkt->dataHdr.id);
     ptr += SNPRINTF(ptr, ptrEnd - ptr, BLUE "[Size: " YELLOW "%u" BLUE "] " RED "%02x %02x ", rxPkt->dataHdr.size, ((rxPkt->dataHdr.size >> 8) & 0xFF), (rxPkt->dataHdr.size & 0xFF));
     ptr += SNPRINTF(ptr, ptrEnd - ptr, BLUE "[Offset: " YELLOW "%u" BLUE "] " RED "%02x %02x", rxPkt->dataHdr.offset, ((rxPkt->dataHdr.offset >> 8) & 0xFF), (rxPkt->dataHdr.offset & 0xFF));
 
@@ -645,13 +661,15 @@ void cltool_firmwareUpdateInfo(void* obj, ISBootloader::eLogLevel level, const c
         cout << buffer << endl;
     } else {
         ISFirmwareUpdater *fwCtx = (ISFirmwareUpdater *) obj;
-        if (buffer[0] || (((g_commandLineOptions.displayMode != cInertialSenseDisplay::DMODE_QUIET) && (fwCtx->fwUpdate_getSessionStatus() == fwUpdate::IN_PROGRESS)))) {
+        if ((buffer[0] && (level <= g_commandLineOptions.verboseLevel)) || ((g_commandLineOptions.verboseLevel >= ISBootloader::eLogLevel::IS_LOG_LEVEL_MORE_INFO) && (fwCtx->fwUpdate_getSessionStatus() == fwUpdate::IN_PROGRESS))) {
             printf("[%5.2f] [%s:SN%07d > %s]", current_timeMs() / 1000.0f, fwCtx->portName, fwCtx->devInfo->serialNumber, fwCtx->fwUpdate_getSessionTargetName());
             if (fwCtx->fwUpdate_getSessionStatus() == fwUpdate::IN_PROGRESS) {
                 int tot = fwCtx->fwUpdate_getTotalChunks();
                 int num = fwCtx->fwUpdate_getNextChunkID();
                 float percent = num / (float) (tot) * 100.f;
                 printf(" :: Progress %d/%d (%0.1f%%)", num, tot, percent);
+            } else if (g_commandLineOptions.verboseLevel > ISBootloader::eLogLevel::IS_LOG_LEVEL_MORE_INFO) {
+                // printf(" :: %s", fwCtx->fwUpdate_getSessionStatusName());
             }
             if (buffer[0])
                 printf(" :: %s", buffer);
@@ -799,19 +817,19 @@ static int cltool_dataStreaming()
                     g_commandLineOptions.evFCont.evFilter.portMask,
                     g_commandLineOptions.evFCont.evFilter.eventMask.priorityLevel);
 
-            // before we start, if we are doing a run-once, set a default runDuration, so we don't hang indefinitely
-            if (g_commandLineOptions.outputOnceDid && !g_commandLineOptions.runDuration)
-                g_commandLineOptions.runDuration = 30000; // 30 second timeout, if none is specified
+            // before we start, if we are doing a run-once, set a default runDurationMs, so we don't hang indefinitely
+            if (g_commandLineOptions.outputOnceDid && !g_commandLineOptions.runDurationMs)
+                g_commandLineOptions.runDurationMs = 10000; // 10 second timeout, if none is specified
 
             // Main loop. Could be in separate thread if desired.
-            uint32_t exitTime = current_timeMs() + g_commandLineOptions.runDuration;
+            uint32_t exitTime = current_timeMs() + g_commandLineOptions.runDurationMs;
             uint32_t requestDataSetsTimeMs = 0;
 
             // yield to allow comms
             SLEEP_MS(1);
 
             // [C++ COMM INSTRUCTION] STEP 4: Read data
-            while (!g_inertialSenseDisplay.ExitProgram() && (!g_commandLineOptions.runDuration || (current_timeMs() < exitTime)))
+            while (!g_inertialSenseDisplay.ExitProgram() && (!g_commandLineOptions.runDurationMs || (current_timeMs() < exitTime)))
             {
 
                 if (!inertialSenseInterface.Update())
@@ -825,13 +843,13 @@ static int cltool_dataStreaming()
                 if (g_inertialSenseDisplay.UploadNeeded())
                 {
                     cInertialSenseDisplay::edit_data_t *edata = g_inertialSenseDisplay.EditData();
-                    inertialSenseInterface.SendData(edata->did, edata->data, edata->info.dataSize, edata->info.dataOffset);
+                    inertialSenseInterface.SendData(edata->did, edata->data, edata->info.elementSize, edata->info.offset + edata->selectionArrayIdx*edata->info.elementSize);
                 }
 
                 // If updating firmware, and all devices have finished, Exit
                 if (g_commandLineOptions.updateFirmwareTarget != fwUpdate::TARGET_HOST) {
                     if (inertialSenseInterface.isFirmwareUpdateFinished()) {
-                        exitCode = 0;
+                        exitCode = inertialSenseInterface.isFirmwareUpdateSuccessful() ? 0 : -3;
                         break;
                     }
                 } else {  // Only print the usual output if we AREN'T updating firmware...
@@ -859,7 +877,7 @@ static int cltool_dataStreaming()
     }
 
     //If Firmware Update is specified return an error code based on the Status of the Firmware Update
-    if ((g_commandLineOptions.updateFirmwareTarget != fwUpdate::TARGET_HOST) && !g_commandLineOptions.updateAppFirmwareFilename.empty()) {
+    if ((g_commandLineOptions.updateFirmwareTarget != fwUpdate::TARGET_HOST) && g_commandLineOptions.updateAppFirmwareFilename.empty()) {
         for (auto& device : inertialSenseInterface.getDevices()) {
             if (device.fwUpdate.hasError) {
                 exitCode = -3;
@@ -909,7 +927,14 @@ static int inertialSenseMain()
         // [REPLAY INSTRUCTION] 1.) Replay data log
         return cltool_replayDataLog();
     }
-        // if app firmware was specified on the command line, do that now and return
+    
+    // if event parsing return after completeing
+    else if (g_commandLineOptions.evOCont.extractEv)
+    {
+        return cltool_extractEventData();
+    }
+
+    // if app firmware was specified on the command line, do that now and return
     else if ((g_commandLineOptions.updateFirmwareTarget == fwUpdate::TARGET_HOST) && (g_commandLineOptions.updateAppFirmwareFilename.length() != 0))
     {
         // FIXME: {{ DEPRECATED }} -- This is the legacy update method (still required by the uINS3 and IMX-5, but will go away with the IMX-5.1)
@@ -969,8 +994,8 @@ int main(int argc, char* argv[])
 {
     // Parse command line options
     if (!cltool_parseCommandLine(argc, argv))
-    {
-        // parsing failed
+    {   // parsing failed
+        g_inertialSenseDisplay.ShutDown();
         return -1;
     }
 
