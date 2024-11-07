@@ -1071,7 +1071,7 @@ static void PopulateMapBrio(data_set_t data_set[DID_COUNT], uint32_t did)
     mapper.AddMember("hAcc", &briometrix_t::hAcc, DATA_TYPE_F32, "m", "Position horizontal accuracy", DATA_FLAGS_READ_ONLY | DATA_FLAGS_FIXED_DECIMAL_4);
     mapper.AddMember("vAcc", &briometrix_t::vAcc, DATA_TYPE_F32, "m", "Position vertical accuracy", DATA_FLAGS_READ_ONLY | DATA_FLAGS_FIXED_DECIMAL_3);
     mapper.AddMember("satsUsed", &briometrix_t::n_sats, DATA_TYPE_UINT8, "", "Number of satellites used in the solution", DATA_FLAGS_READ_ONLY);
-    mapper.AddMember("status", &briometrix_t::status, DATA_TYPE_UINT32, "", "GPS status: [0x000000xx] number of satellites used, [0x0000xx00] fix type, [0x00xx0000] status flags", DATA_FLAGS_READ_ONLY | DATA_FLAGS_DISPLAY_HEX | DATA_FLAGS_GPS_STATUS);
+    mapper.AddMember("status", &briometrix_t::gps_status, DATA_TYPE_UINT32, "", "GPS status: [0x000000xx] number of satellites used, [0x0000xx00] fix type, [0x00xx0000] status flags", DATA_FLAGS_READ_ONLY | DATA_FLAGS_DISPLAY_HEX | DATA_FLAGS_GPS_STATUS);
     mapper.AddMember("timeOfWeek", &briometrix_t::timeOfWeekINS1_s, DATA_TYPE_F64, "s", "Time of week since Sunday morning, GMT", DATA_FLAGS_READ_ONLY | DATA_FLAGS_FIXED_DECIMAL_4 );
     mapper.AddMember("roll", &briometrix_t::roll, DATA_TYPE_F32, SYM_DEG, "Roll",   flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
     mapper.AddMember("pitch", &briometrix_t::pitch, DATA_TYPE_F32, SYM_DEG, "pitch",   flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
@@ -1100,7 +1100,7 @@ static void PopulateMapBrio(data_set_t data_set[DID_COUNT], uint32_t did)
     mapper.AddMember("gravX", &briometrix_t::gravX, DATA_TYPE_F32, "", "", DATA_FLAGS_READ_ONLY | DATA_FLAGS_FIXED_DECIMAL_4);
     mapper.AddMember("gravY", &briometrix_t::gravY, DATA_TYPE_F32, "", "", DATA_FLAGS_READ_ONLY | DATA_FLAGS_FIXED_DECIMAL_4);
     mapper.AddMember("gravZ", &briometrix_t::gravZ, DATA_TYPE_F32, "", "", DATA_FLAGS_READ_ONLY | DATA_FLAGS_FIXED_DECIMAL_4);
-    // ADD_MAP(m, totalSize, "timeIMU_s", timeIMU_s, 0, DataTypeDouble, double, 0);
+    mapper.AddMember("timeIMU_s", &briometrix_t::timeIMU_s, DATA_TYPE_F64, "","", flags);
     
     mapper.AddMember("aX", &briometrix_t::aX, DATA_TYPE_F32, "m/s", "Velocity in body frame", flags);
     mapper.AddMember("aY", &briometrix_t::aY, DATA_TYPE_F32, "m/s", "Velocity in body frame", flags);
