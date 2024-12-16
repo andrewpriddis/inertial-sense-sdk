@@ -103,6 +103,13 @@ extern "C" {
     #define PLATFORM_IS_ARM 1
     #define CPU_IS_LITTLE_ENDIAN 1
     #define CPU_IS_BIG_ENDIAN 0
+#elif defined(ESP32) || defined(__ESP32__)
+    #define PLATFORM_IS_EMBEDDED 1
+    #define PLATFORM_IS_ARM 0
+    #define PLATFORM_IS_ESP32 1
+    #define CPU_IS_LITTLE_ENDIAN 1
+    #define CPU_IS_BIG_ENDIAN 0
+
 #else
     #error Unknown platform not supported, be sure to set it up here, defining CPU_IS_LITTLE_ENDIAN and CPU_IS_BIG_ENDIAN
     #define PLATFORM_IS_EMBEDDED 0
@@ -140,7 +147,7 @@ extern "C" {
     #define VSNPRINTF vsnprintf
 #elif PLATFORM_IS_EMBEDDED
   #ifndef ARDUINO_SAMD_ZERO
-    #include "printf.h"        // Use embedded-safe SNPRINTF
+    // #include "printf.h"		// Use embedded-safe SNPRINTF
   #endif
     #define SNPRINTF snprintf_
     #define VSNPRINTF vsnprintf_
