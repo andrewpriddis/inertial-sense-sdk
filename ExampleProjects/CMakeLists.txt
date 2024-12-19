@@ -12,12 +12,7 @@ endif()
 
 # Add InertialSenseSDK static library subdirectory
 set(IS_SDK_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
-
-find_library(SDK_LIBRARY_PATH InertialSenseSDK PATHS ${IS_SDK_DIR})
-if(NOT SDK_LIBRARY_PATH AND NOT TARGET InertialSenseSDK)
-    # InertialSenseSDK library not prebuilt and not already include in project.  Include in this project.
-    add_subdirectory(${IS_SDK_DIR} InertialSenseSDK)
-endif()
+include(${IS_SDK_DIR}/include_is_sdk_find_library.cmake)
 
 if(WIN32)
     # yamlcpp needs to know it's a static lib
@@ -29,8 +24,8 @@ add_subdirectory(Ascii)
 add_subdirectory(Bootloader)
 add_subdirectory(Communications)
 add_subdirectory(IS_firmwareUpdate_v2)
-add_subdirectory(ISLogger)
-add_subdirectory(ISLoggerSimple)
-add_subdirectory(LogReader)
+add_subdirectory(ISLogger_read)
+add_subdirectory(ISLogger_write)
+add_subdirectory(InertialSense_logger)
 add_subdirectory(NTRIP_rover)
 add_subdirectory(IS_NMEAProtocolCheckSum)

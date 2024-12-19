@@ -18,7 +18,6 @@ from log_reader import LogReader
 # from ci_hdw.data_sets import *
 from pylib.data_sets import *
 from inertialsense_math.pose import *
-from pylib.ISToolsDataSorted import refLla, getTimeFromTowMs, getTimeFromTow, setGpsWeek, getTimeFromGTime
 
 RAD2DEG = 180.0 / np.pi
 DEG2RAD = np.pi / 180.0
@@ -55,7 +54,7 @@ class Log:
         self.c_log.init(self, directory, serials)
         self.c_log.load()
         self.serials = self.c_log.getSerialNumbers()
-        self.sanitize()
+        # self.sanitize()
         self.data = np.array(self.data, dtype=object)
         self.directory = directory
         self.mount_bias_filepath = directory + '/angular_mount_bias.yml'

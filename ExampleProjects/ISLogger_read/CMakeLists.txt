@@ -1,14 +1,9 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10.0)
 
-project(ISLogReaderExample)
+project(ISLoggerRead)
 
 set(IS_SDK_DIR "${CMAKE_CURRENT_LIST_DIR}/../..")
-
-find_library(SDK_LIBRARY_PATH InertialSenseSDK PATHS ${IS_SDK_DIR})
-if(NOT SDK_LIBRARY_PATH AND NOT TARGET InertialSenseSDK)
-    # InertialSenseSDK library not prebuilt and not already include in project.  Include in this project.
-    add_subdirectory(${IS_SDK_DIR} InertialSenseSDK)
-endif()
+include(${IS_SDK_DIR}/include_is_sdk_find_library.cmake)
 
 # Include InertialSenseSDK header files
 include_directories(
@@ -20,7 +15,7 @@ include_directories(
 link_directories(${IS_SDK_DIR})
 
 # Define the executable
-add_executable(${PROJECT_NAME} ISLogReaderExample.cpp)
+add_executable(${PROJECT_NAME} ISLoggerReadExample.cpp)
 
 # Find pthread package
 find_package(Threads REQUIRED)

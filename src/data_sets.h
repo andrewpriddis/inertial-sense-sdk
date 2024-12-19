@@ -137,7 +137,7 @@ typedef uint32_t eDataIDs;
 
 #define DID_EVENT                       (eDataIDs)119 /** INTERNAL USE ONLY (did_event_t)*/
 
-#define DID_GPX_FIRST                             120 /** First of GPX DIDs */
+#define DID_GPX_FIRST                   (eDataIDs)120 /** First of GPX DIDs */
 #define DID_GPX_DEV_INFO                (eDataIDs)120 /** (dev_info_t) GPX device information */
 #define DID_GPX_FLASH_CFG               (eDataIDs)121 /** (gpx_flash_cfg_t) GPX flash configuration */
 #define DID_GPX_RTOS_INFO               (eDataIDs)122 /** (gpx_rtos_info_t) GPX RTOs info */
@@ -599,6 +599,38 @@ typedef struct PACKED
 
 /** Add missing hardware descriptor to dev_info_t. */
 void devInfoPopulateMissingHardware(dev_info_t *devInfo);
+
+/**
+ * @brief Convert NMEA talker string to ID (eNmeaMsgId).
+ * 
+ * @param a NMEA talker string
+ * @param aSize Length of the talker string
+ * @return int NMEA ID (eNmeaMsgId) on success or negative for failure. -1 for NMEA head not found, -2 for invalid length, -3 other error
+ */
+int getNmeaMsgId(const void* msg, int msgSize);
+
+/**
+ * @brief Convert NMEA ID (eNmeaMsgId) to talker string
+ * 
+ * @param msgId NMEA ID (eNmeaMsgId)
+ * @param buf Talker id string output 
+ * @param bufSize Max size of buffer talker string will be written to.  Must be 5 or larger.
+ * @return int 0 on success, -1 on failure.
+ */
+int nmeaMsgIdToTalker(int msgId, void *buf, int bufSize);
+
+/**
+ * @brief Get RTCM ID from 
+ * 
+ * @param buff 
+ * @param pos 
+ * @param len 
+ * @return unsigned int 
+ */
+unsigned int messageStatsGetbitu(const unsigned char *buff, int pos, int len);
+
+#define RTCM3_MSG_ID(msg)       messageStatsGetbitu((const unsigned char*)msg, 24, 12)
+#define RTCM3_MSG_LENGTH(msg)   messageStatsGetbitu((const unsigned char*)msg, 14, 10)
 
 /** (DID_MANUFACTURING_INFO) Manufacturing info */
 typedef struct PACKED
@@ -1434,6 +1466,8 @@ enum eGenFaultCodes
     GFC_INIT_I2C						= 0x00800000,
     /*! Fault: Chip erase line toggled but did not meet required hold time.  This is caused by noise/transient on chip erase pin.  */
     GFC_CHIP_ERASE_INVALID				= 0x01000000,
+    /*! Fault: GPS time fault */
+    GFC_GNSS_TIME_FAULT                 = 0x02000000,
 };
 
 
@@ -2050,36 +2084,39 @@ enum GRMC_BIT_POS{
 
 #define GRMC_PRESET_DID_RTK_DEBUG_PERIOD_MS     1000
 #define GRMC_PRESET_GPX_DEV_INFO_PERIOD_MS      1000
+#define GRMC_PRESET_GPX_GPS1_VERSION_PERIOD_MS  1000
+#define GRMC_PRESET_GPX_GPS2_VERSION_PERIOD_MS  1000
 #define GRMC_PRESET_GPX_RTOS_INFO_PERIOD_MS     500
 #define GRMC_PRESET_GPX_STATUS_PERIOD_MS        500
 #define GRMC_PRESET_GPX_DEBUG_ARRAY_PERIOD_MS   500
-#define GRMC_PRESET_GPX_GPS1_VERSION_PERIOD_MS  1000
-#define GRMC_PRESET_GPX_GPS2_VERSION_PERIOD_MS  1000
 #define GRMC_PRESET_GPX_PORT_MON_PERIOD_MS      500
 
-#define GRMC_PRESET_GPX_IMX		        (   GRMC_BITS_PRESET \
+#define GRMC_PRESET_GPX_BASE            (GRMC_BITS_PRESET \
                                         /*| GRMC_BITS_DEV_INFO*/ \
                                         /*| GRMC_BITS_RTOS_INFO*/ \
                                         | GRMC_BITS_STATUS \
-                                        /*| GRMC_BITS_DEBUG_ARRAY*/ \
-                                        | GRMC_BITS_GPS1_POS \
-                                        | GRMC_BITS_GPS2_POS \
+                                        /*| GRMC_BITS_DEBUG_ARRAY*/)
+
+#define GRMC_PRESET_GPX_GPS1            (GRMC_BITS_GPS1_POS \
                                         | GRMC_BITS_GPS1_VEL \
-                                        | GRMC_BITS_GPS2_VEL \
                                         | GRMC_BITS_GPS1_SAT \
-                                        | GRMC_BITS_GPS2_SAT \
                                         | GRMC_BITS_GPS1_SIG \
-                                        | GRMC_BITS_GPS2_SIG \
                                         | GRMC_BITS_GPS1_VERSION \
+                                        /*| GRMC_BITS_GPS1_RTK_POS*/ \
+                                        | GRMC_BITS_GPS1_RAW)
+
+#define GRMC_PRESET_GPX_GPS2            (GRMC_BITS_GPS2_POS \
+                                        | GRMC_BITS_GPS2_VEL \
+                                        | GRMC_BITS_GPS2_SAT \
+                                        | GRMC_BITS_GPS2_SIG \
                                         | GRMC_BITS_GPS2_VERSION \
-                                        | GRMC_BITS_GPS1_RTK_POS \
-                                        | GRMC_BITS_GPS1_RTK_POS_REL\
-                                        | GRMC_BIT_POS_GPS1_RTK_POS_MISC \
+                                        | GRMC_BITS_GPS2_RAW)
+
+#define GRMC_PRESET_GPX_IMX		        ( GRMC_PRESET_GPX_BASE\
+                                        | GRMC_PRESET_GPX_GPS1 \
+                                        | GRMC_PRESET_GPX_GPS2 \
                                         | GRMC_BITS_GPS2_RTK_CMP_REL \
-                                        | GRMC_BITS_GPS2_RTK_CMP_MISC \
-                                        | GRMC_BITS_GPS1_RAW \
-                                        | GRMC_BITS_GPS2_RAW \
-                                        | GRMC_BITS_GPS_BASE_RAW)
+                                        | GRMC_BITS_GPS2_RTK_CMP_MISC)
 
 #define GRMC_PRESET_GPX_IMX_RTK_DBG     (GRMC_PRESET_GPX_IMX | GRMC_BITS_DID_RTK_DEBUG)
 

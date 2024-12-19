@@ -70,6 +70,10 @@ class logInspectorInternal(LogInspectorWindow):
         self.page = 0
         self.exePath = __file__
 
+    def createListSystem(self):
+        super(logInspectorInternal, self).createListSystem()
+        self.addListItem('General Fault', 'genFaultCodes')
+
     def createListIns(self):
         super(logInspectorInternal, self).createListIns()
         self.addListItem('EKF Biases', 'ekfBiases')
@@ -131,7 +135,8 @@ class logInspectorInternal(LogInspectorWindow):
 
     def chooseDevs(self):
         try:
-            dlg = ChooseDevsDialog(self.plotter, self)
+            for plotter in self.plotter:
+                dlg = ChooseDevsDialog(plotter, self)
             dlg.show()
             dlg.exec_()
         except Exception as e:
@@ -148,8 +153,8 @@ class logInspectorInternal(LogInspectorWindow):
 
     def createPlotSelection(self):
         super(logInspectorInternal, self).createPlotSelection()
-        self.addButton('RMS', self.RMS, layout=self.LayoutBelowPlotSelection)
-        self.addButton('Devices', self.chooseDevs, layout=self.LayoutBelowPlotSelection)
+        self.addButton('RMS', self.RMS, layout=self.LayoutVButtons, tooltip="Compute RMS Test")
+        self.addButton('Devices', self.chooseDevs, layout=self.LayoutVButtons, tooltip="Show/Hide devices")
 
     def createListGps(self):
         super(logInspectorInternal, self).createListGps()
