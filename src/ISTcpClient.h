@@ -72,7 +72,7 @@ public:
 	* @param userName optional user name (basic authentication)
 	* @param password optional password (basic authentication)
 	*/
-	void HttpGet(const std::string& subUrl, const std::string& userAgent, const std::string& userName, const std::string& password);
+	void HttpGet(const std::string& host, const std::string& port, const std::string& subUrl, const std::string& userAgent, const std::string& userName, const std::string& password);
 
 	/**
 	* Get whether the connection is open

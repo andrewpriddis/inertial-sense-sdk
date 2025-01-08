@@ -64,7 +64,7 @@ cISStream* cISClient::OpenConnectionToServer(const string& connectionString, boo
 		if (subUrl.size() != 0)
 		{	// Connect NTRIP if specified - https://igs.bkg.bund.de/root_ftp/NTRIP/documentation/NtripDocumentation.pdf
 			string userAgent = "NTRIP Inertial Sense";			// NTRIP standard requires "NTRIP" to be at the start of the User-Agent string.
-			clientStream->HttpGet(subUrl, userAgent, username, password);
+			clientStream->HttpGet(host, port, subUrl, userAgent, username, password);
 			if (enableGpggaForwarding != NULL)
 			{
 				*enableGpggaForwarding = true;

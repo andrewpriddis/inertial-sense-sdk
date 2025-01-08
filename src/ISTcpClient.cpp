@@ -329,11 +329,11 @@ int cISTcpClient::Write(const void* data, int dataLength)
 	return count;
 }
 
-void cISTcpClient::HttpGet(const string& subUrl, const string& userAgent, const string& userName, const string& password)
+void cISTcpClient::HttpGet(const std::string& host, const std::string& port, const std::string& subUrl, const std::string& userAgent, const std::string& userName, const std::string& password)
 {
     // Construct the HTTP GET request
     string msg = "GET /" + subUrl + " HTTP/1.1\r\n";
-    msg += "Host: ntrip.data.gnss.ga.gov.au:2101\r\n";  // Add Host header
+    msg += "Host: " + host + ":" + port + "\r\n";  // Add Host header
     msg += "User-Agent: " + userAgent + "\r\n";  // Add User-Agent header
 
     // Add Authorization header if username and password are provided
