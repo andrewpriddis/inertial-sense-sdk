@@ -331,15 +331,24 @@ int cISTcpClient::Write(const void* data, int dataLength)
 
 void cISTcpClient::HttpGet(const string& subUrl, const string& userAgent, const string& userName, const string& password)
 {
-	string msg = "GET /" + subUrl + " HTTP/1.1\r\n";
-	msg += "User-Agent: " + userAgent + "\r\n";
-	if (userName.size() != 0 && password.size() != 0)
-	{
-		string auth = userName + ":" + password;
-		msg += "Authorization: Basic " + base64Encode((const unsigned char*)auth.data(), (int)auth.size()) + "\r\n";
-	}
-	msg += "Accept: */*\r\nConnection: close\r\n\r\n";
-	Write((uint8_t*)msg.data(), (int)msg.size());
+    // Construct the HTTP GET request
+    string msg = "GET /" + subUrl + " HTTP/1.1\r\n";
+    msg += "Host: ntrip.data.gnss.ga.gov.au:2101\r\n";  // Add Host header
+    msg += "User-Agent: " + userAgent + "\r\n";  // Add User-Agent header
+
+    // Add Authorization header if username and password are provided
+    if (!userName.empty() && !password.empty())
+    {
+        string auth = userName + ":" + password;
+        string encodedAuth = base64Encode((const unsigned char*)auth.data(), (int)auth.size());
+        msg += "Authorization: Basic " + encodedAuth + "\r\n";
+    }
+
+    msg += "Accept: */*\r\n";
+    msg += "Connection: close\r\n\r\n";
+
+    // Send the HTTP GET request
+    Write((uint8_t*)msg.data(), (int)msg.size());
 }
 
 int cISTcpClient::SetBlocking(bool blocking)
