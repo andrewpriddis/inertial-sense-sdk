@@ -163,8 +163,9 @@ void read_RTK_base_data(serial_port_t* serialPort, is_comm_instance_t *comm, cIS
 		{
 			if (ptype == _PTYPE_RTCM3)
 			{	// Forward RTCM3 packets to uINS
-				serialPortWrite(serialPort, comm->rxPkt.data.ptr, comm->rxPkt.data.size);
-				s_rx.baseCount++;
+				// serialPortWrite(serialPort, comm->rxPkt.data.ptr, comm->rxPkt.data.size);
+				printf((string("BASE: ")+to_string(s_rx.baseCount)+string("\n")).c_str());
+                s_rx.baseCount++;
 			}
 		}
 	}
@@ -199,11 +200,11 @@ int main(int argc, char* argv[])
 	// Open serial, last parameter is a 1 which means a blocking read, you can set as 0 for non-blocking
 	// you can change the baudrate to a supported baud rate (IS_BAUDRATE_*), make sure to reboot the uINS
 	//  if you are changing baud rates, you only need to do this when you are changing baud rates.
-	if (!serialPortOpen(&serialPort, argv[1], IS_BAUDRATE_921600, 0))
-	{
-		printf("Failed to open serial port on com port %s\r\n", argv[1]);
-		return -2;
-	}
+	// if (!serialPortOpen(&serialPort, argv[1], IS_BAUDRATE_921600, 0))
+	// {
+	// 	printf("Failed to open serial port on com port %s\r\n", argv[1]);
+	// 	return -2;
+	// }
 
 	// STEP 4: Connect to the RTK base (sever)
 	// Connection string follows the following format:
@@ -215,19 +216,19 @@ int main(int argc, char* argv[])
 		return -2;
 	}
 
-	int error;
+	// int error;
 
-	// STEP 5: Stop any message broadcasting
-	if ((error = stop_message_broadcasting(&serialPort, &comm)))
-	{
-		return error;
-	}
+	// // STEP 5: Stop any message broadcasting
+	// if ((error = stop_message_broadcasting(&serialPort, &comm)))
+	// {
+	// 	return error;
+	// }
 
-	// STEP 6: Enable message broadcasting
-	if ((error = enable_message_broadcasting(&serialPort, &comm)))
-	{
-		return error;
-	}
+	// // STEP 6: Enable message broadcasting
+	// if ((error = enable_message_broadcasting(&serialPort, &comm)))
+	// {
+	// 	return error;
+	// }
 
 
 	// STEP 8: Handle received data
@@ -235,7 +236,7 @@ int main(int argc, char* argv[])
 	// Main loop
 	while (1)
 	{
-		read_uINS_data(&serialPort, &comm, s_clientStream);
+		// read_uINS_data(&serialPort, &comm, s_clientStream);
 
 		read_RTK_base_data(&serialPort, &comm, s_clientStream);
 
