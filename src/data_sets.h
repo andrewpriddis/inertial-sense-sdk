@@ -5578,18 +5578,19 @@ enum eBrioLoggerStatus
     BASE_DATA_RX                    = (int)0x00000002,
     RTK_FIX                         = (int)0x00000004,
     NAV_MODE                        = (int)0x00000008,
-    GV_STATUS_CAL_GOOD              = (int)0x00000010,
-    GV_STATUS_LEARNING_REQ          = (int)0x00000020,
-    RESET_REQ                       = (int)0x00000040,
-    DEAD_RECKONING                  = (int)0x00000080,
-    LOGGER_ON                       = (int)0x00000100,
-    VIDEO_ON                        = (int)0x00000200,
-    ON_PATH                         = (int)0x00000400,
-    ON_RAMP                         = (int)0x00000800,
-    ON_CROSSING                     = (int)0x00001000,
-    PAUSE                           = (int)0x00002000,
-    CMP_FIX                         = (int)0x00004000,
-    GPS_AID_HEADING                 = (int)0x00008000
+    SYSTEM_LEVEL                    = (int)0x00000010,
+    DEAD_RECK_CAL_GOOD              = (int)0x00000020,
+    DEAD_RECK_LEARNING_REQ          = (int)0x00000040,
+    RESET_REQ                       = (int)0x00000080,
+    DEAD_RECKONING                  = (int)0x00000100,
+    LOGGER_ON                       = (int)0x00000200,
+    VIDEO_ON                        = (int)0x00000400,
+    ON_PATH                         = (int)0x00000800,
+    ON_RAMP                         = (int)0x00001000,
+    ON_CROSSING                     = (int)0x00002000,
+    PAUSE                           = (int)0x00004000,
+    // CMP_FIX                         = (int)0x00004000,
+    // GPS_AID_HEADING                 = (int)0x00008000
 };
 
 enum eBrioLoggerStates
@@ -5613,7 +5614,8 @@ enum eBrioMessageEnabled
     IMU = 0x10,
     INS2 = 0x20,
     GV = 0x40,
-    GPS1R = 0x80 //Not using this message
+    CAL = 0x80
+    // GPS1R = 0x80 //Not using this message
 };
 
 #if defined(INCLUDE_LUNA_DATA_SETS)

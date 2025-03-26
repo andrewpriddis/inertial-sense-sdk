@@ -1433,7 +1433,7 @@ const char* const cISDataMappings::m_dataIdNames[] =
     "UNUSED_107",                       // 107
     "UNUSED_108",                       // 108
     "UNUSED_109",                       // 109
-    "DID_EVB_LUNA_FLASH_CFG",           // 110
+    "DID_BRIO",                          // 110
     "DID_EVB_LUNA_STATUS",              // 111
     "DID_EVB_LUNA_SENSORS",             // 112
     "DID_EVB_LUNA_REMOTE_KILL",         // 113
