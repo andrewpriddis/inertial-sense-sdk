@@ -5615,7 +5615,7 @@ enum eBrioMessageEnabled
     IMU = 0x10,
     INS2 = 0x20,
     GV = 0x40,
-    CAL = 0x80
+    // CAL = 0x80
     // GPS1R = 0x80 //Not using this message
 };
 
