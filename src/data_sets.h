@@ -5578,7 +5578,7 @@ enum eBrioLoggerStatus
     BASE_DATA_RX                    = (int)0x00000002,
     RTK_FIX                         = (int)0x00000004,
     NAV_MODE                        = (int)0x00000008,
-    GV_STATUS_CAL_GOOD              = (int)0x00000010,
+    DEAD_RECK_CAL_GOOD              = (int)0x00000010,
     SYSTEM_LEVEL                    = (int)0x00000020,
     RESET_REQ                       = (int)0x00000040,
     DEAD_RECKONING                  = (int)0x00000080,
