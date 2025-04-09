@@ -103,6 +103,9 @@ extern "C" {
     #define PLATFORM_IS_ARM 1
     #define CPU_IS_LITTLE_ENDIAN 1
     #define CPU_IS_BIG_ENDIAN 0
+#elif defined(ESP32) || defined(PLATFORM_IS_ESP32)
+    #define CPU_IS_LITTLE_ENDIAN 1
+    // #define PLATFORM_IS_EMBEDDED 1 TODO:Do this once merge latest SDK which includes correct printf.h
 #else
     #error Unknown platform not supported, be sure to set it up here, defining CPU_IS_LITTLE_ENDIAN and CPU_IS_BIG_ENDIAN
     #define PLATFORM_IS_EMBEDDED 0
