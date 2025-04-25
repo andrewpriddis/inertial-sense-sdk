@@ -5574,13 +5574,13 @@ typedef struct
 
 enum eBrioLoggerStatus
 {
-    GPS_DATA_RX                     = (int)0x00000001,
-    BASE_DATA_RX                    = (int)0x00000002,
-    RTK_FIX                         = (int)0x00000004,
-    NAV_MODE                        = (int)0x00000008,
-    DEAD_RECK_CAL_GOOD              = (int)0x00000010,
-    SYSTEM_LEVEL                    = (int)0x00000020,
-    RESET_REQ                       = (int)0x00000040,
+    SYSTEM_LEVEL                    = (int)0x00000001,
+    GPS_3D                          = (int)0x00000002,  
+    BASE_DATA_RX                    = (int)0x00000004,
+    RTK_FLOAT                       = (int)0x00000008,
+    RTK_FIX                         = (int)0x00000010,
+    RESET_REQ                        = (int)0x00000020,
+    DEAD_RECK_CAL_GOOD              = (int)0x00000040,
     DEAD_RECKONING                  = (int)0x00000080,
     LOGGER_ON                       = (int)0x00000100,
     VIDEO_ON                        = (int)0x00000200,
@@ -5593,6 +5593,7 @@ enum eBrioLoggerStatus
     // CMP_FIX                         = (int)0x00004000,
     // GPS_AID_HEADING                 = (int)0x00008000
 };
+
 
 enum eBrioLoggerStates
 {
