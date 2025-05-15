@@ -1078,8 +1078,8 @@ static void PopulateMapBrio(data_set_t data_set[DID_COUNT], uint32_t did)
     mapper.AddMember("roll", &briometrix_t::roll, DATA_TYPE_F32, SYM_DEG, "Roll",   flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
     mapper.AddMember("pitch", &briometrix_t::pitch, DATA_TYPE_F32, SYM_DEG, "pitch",   flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
     mapper.AddMember("yaw", &briometrix_t::yaw, DATA_TYPE_F32, SYM_DEG, "yaw",   flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
-    mapper.AddMember("slope_percent", &briometrix_t::slope_percent, DATA_TYPE_F32, SYM_DEG, "slope_percent",   flags | DATA_FLAGS_FIXED_DECIMAL_3, C_RAD2DEG);
-    mapper.AddMember("cross_slope_percent", &briometrix_t::cross_slope_percent, DATA_TYPE_F32, SYM_DEG, "cross_slope_percent",   flags | DATA_FLAGS_FIXED_DECIMAL_3, C_RAD2DEG);
+    mapper.AddMember("slope_percent", &briometrix_t::slope_percent, DATA_TYPE_F32, SYM_DEG, "slope_percent",   flags | DATA_FLAGS_FIXED_DECIMAL_3);
+    mapper.AddMember("cross_slope_percent", &briometrix_t::cross_slope_percent, DATA_TYPE_F32, SYM_DEG, "cross_slope_percent",   flags | DATA_FLAGS_FIXED_DECIMAL_3);
     mapper.AddMember("latitude", &briometrix_t::latitude, DATA_TYPE_F64,"deg", "Latitude", flags | DATA_FLAGS_FIXED_DECIMAL_8);
     mapper.AddMember("longitude", &briometrix_t::longitude, DATA_TYPE_F64, "deg", "Longitude", flags | DATA_FLAGS_FIXED_DECIMAL_8);
     mapper.AddMember("altitude", &briometrix_t::altitude, DATA_TYPE_F64, "altitude", "m", flags | DATA_FLAGS_FIXED_DECIMAL_8);
