@@ -1,7 +1,7 @@
 /*
 MIT LICENSE
 
-Copyright (c) 2014-2024 Inertial Sense, Inc. - http://inertialsense.com
+Copyright (c) 2014-2025 Inertial Sense, Inc. - http://inertialsense.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 
@@ -90,6 +90,8 @@ typedef enum
     _PTYPE_LAST_DATA            = _PTYPE_SONY
 } protocol_type_t;
 
+#define DEFAULT_PROTO_MASK (ENABLE_PROTOCOL_ISB | ENABLE_PROTOCOL_NMEA | ENABLE_PROTOCOL_UBLOX | ENABLE_PROTOCOL_RTCM3)
+
 /** The maximum allowable dataset size */
 #define MAX_DATASET_SIZE        1024
 
@@ -119,15 +121,15 @@ typedef enum
 /** Binary checksum start value */
 #define CHECKSUM_SEED 0x00AAAAAA
 
-/** Defines the 4 parts to the communications version. Major changes involve changes to the com manager. Minor changes involve additions to data structures */
+/** Communications Protocol Version. See release notes. */
 
-// Major (in com_manager.h)
-#define PROTOCOL_VERSION_CHAR0			(2)
-#define PROTOCOL_VERSION_CHAR1			(0)
+// Increment w/ breaking changes (in ISComm.cpp) that prevent backwards compatibility with older protocols. 
+#define PROTOCOL_VERSION_CHAR0		2   // Breaking changes (Packet)
+// #define PROTOCOL_VERSION_CHAR1   .   // Breaking changes (Payload)       (defined in data_sets.h)
 
-// Minor (in data_sets.h)
-// #define PROTOCOL_VERSION_CHAR2		0
-// #define PROTOCOL_VERSION_CHAR3		0
+// Increment w/ non-breaking changes (in data_sets.h) that would still backward compatibility with older protocols
+#define PROTOCOL_VERSION_CHAR2		0   // Non-breaking changes (Packet)
+// #define PROTOCOL_VERSION_CHAR3   .   // Non-breaking changes (Payload)   (defined in data_sets.h)
 
 #define UBLOX_HEADER_SIZE 6
 #define RTCM3_HEADER_SIZE 3
@@ -358,7 +360,8 @@ typedef struct
     uint16_t            offset;
 } p_data_hdr_t;
 
-#define MIN_PACKET_SIZE (sizeof(packet_hdr_t) + 2)		// Packet header + checksum, no payload
+#define ISB_MIN_PACKET_SIZE             (sizeof(packet_hdr_t) + 2)		                                // Packet header + checksum, no payload
+#define ISB_HDR_TO_PACKET_SIZE(hdr)     ((hdr).size + ISB_MIN_PACKET_SIZE + ((hdr).offset ? 2 : 0))     // Convert ISB header to packet size
 
 /** Represents a packet header and body */
 typedef struct
@@ -553,7 +556,7 @@ typedef enum {
     EPARSE_INCOMPLETE_PACKET,       //! Stream/Sentence(NMEA) is too short/incomplete to identify as a packet
     EPARSE_INVALID_HEADER,
     EPARSE_INVALID_PAYLOAD,
-    EPARSE_RXBUFFER_FLUSHED,
+    EPARSE_RXBUFFER_FLUSHED,        //!< RX buffer flushed during parse, packet too large to fit
     EPARSE_STREAM_UNPARSABLE,
     NUM_EPARSE_ERRORS
 } eParseErrorType;
@@ -660,13 +663,6 @@ void is_comm_init(is_comm_instance_t* instance, uint8_t *buffer, int bufferSize)
 // void is_comm_read_parse(pfnIsCommPortRead portRead, unsigned int port, is_comm_instance_t* comm);
 void is_comm_buffer_parse_messages(uint8_t *buf, uint32_t buf_size, is_comm_instance_t* comm, is_comm_callbacks_t *callbacks);
 void is_comm_port_parse_messages(pfnIsCommPortRead portRead, unsigned int port, is_comm_instance_t *comm, is_comm_callbacks_t *callbacks);
-
-/**
-* Check that simple communications interface is valid and if not re-initializes.
-* @param instance communications instance, please ensure that you have set the buffer and bufferSize
-* @return 0 if parameters match, -1 if there are mismatches and is_comm is not valid.
-*/
-int is_comm_check_init(is_comm_instance_t* c, uint8_t *buffer, int bufferSize, uint8_t forceInit);
 
 /**
 * Decode packet data - when data is available, return value will be the protocol type (see protocol_type_t) and the comm instance dataPtr will point to the start of the valid data.  For Inertial Sense binary protocol, comm instance dataHdr contains the data ID (DID), size, and offset.

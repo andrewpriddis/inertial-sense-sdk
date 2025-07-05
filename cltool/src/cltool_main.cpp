@@ -1,7 +1,7 @@
 /*
 MIT LICENSE
 
-Copyright (c) 2014-2024 Inertial Sense, Inc. - http://inertialsense.com
+Copyright (c) 2014-2025 Inertial Sense, Inc. - http://inertialsense.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 
@@ -46,6 +46,8 @@ using namespace std;
 static bool g_killThreadsNow = false;
 static bool g_enableDataCallback = false;
 int g_devicesUpdating = 0;
+
+static void sendNmea(serial_port_t &port, string nmeaMsg);
 
 static void display_server_client_status(InertialSense* i, bool server=false, bool showMessageSummary=false, bool refreshDisplay=false)
 {
@@ -277,11 +279,17 @@ void cltool_requestDataSets(InertialSense& inertialSenseInterface, std::vector<s
     for (stream_did_t& dataItem : datasets)
     {   // Datasets to stream
         inertialSenseInterface.BroadcastBinaryData(dataItem.did, dataItem.periodMultiple);
+        
+        system_command_t cfg;
         switch (dataItem.did)
         {
             case DID_RTOS_INFO:
-                system_command_t cfg;
                 cfg.command = SYS_CMD_ENABLE_RTOS_STATS;
+                cfg.invCommand = ~cfg.command;
+                inertialSenseInterface.SendRawData(DID_SYS_CMD, (uint8_t*)&cfg, sizeof(system_command_t), 0);
+                break;
+            case DID_GPX_RTOS_INFO:
+                cfg.command = SYS_CMD_GPX_ENABLE_RTOS_STATS;
                 cfg.invCommand = ~cfg.command;
                 inertialSenseInterface.SendRawData(DID_SYS_CMD, (uint8_t*)&cfg, sizeof(system_command_t), 0);
                 break;
@@ -297,7 +305,7 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
     // Stop streaming any messages, wait for buffer to clear, and enable Rx callback
     if (!g_commandLineOptions.listenMode)
     {   
-        inertialSenseInterface.StopBroadcasts();
+        inertialSenseInterface.StopBroadcasts(false);
     }
     SLEEP_MS(100);
     g_enableDataCallback = true;
@@ -464,10 +472,29 @@ static bool cltool_setupCommunications(InertialSense& inertialSenseInterface)
             cout << "Failed to connect to server (base)." << endl;
         }
     }
-    if (g_commandLineOptions.flashCfg.length() != 0)
+
+    bool exitNow = false;
+    if (g_commandLineOptions.imxFlashCfg.length() != 0)
     {
-        return cltool_updateFlashCfg(inertialSenseInterface, g_commandLineOptions.flashCfg);
+        if (!cltool_updateImxFlashCfg(inertialSenseInterface, g_commandLineOptions.imxFlashCfg))
+        {   // Exit cltool now and report error code
+            std::exit(-1);
+        }
+        exitNow = true;
     }
+    if (g_commandLineOptions.gpxFlashCfg.length() != 0)
+    {
+        if (!cltool_updateGpxFlashCfg(inertialSenseInterface, g_commandLineOptions.gpxFlashCfg))
+        {   // Exit cltool now and report error code
+            std::exit(-2);
+        }
+        exitNow = true;
+    }
+    if (exitNow)
+    {   // Exit cltool now and report success code
+        std::exit(0);
+    }
+
     return true;
 }
 
@@ -673,9 +700,14 @@ static int cltool_createHost()
         cout << "Failed to open serial port at " << g_commandLineOptions.comPort.c_str() << endl;
         return -1;
     }
-    else if (g_commandLineOptions.flashCfg.length() != 0 && !cltool_updateFlashCfg(inertialSenseInterface, g_commandLineOptions.flashCfg))
+    else if (g_commandLineOptions.imxFlashCfg.length() != 0 && !cltool_updateImxFlashCfg(inertialSenseInterface, g_commandLineOptions.imxFlashCfg))
     {
-        cout << "Failed to update flash config" << endl;
+        cout << "Failed to update IMX flash config" << endl;
+        return -1;
+    }
+    else if (g_commandLineOptions.gpxFlashCfg.length() != 0 && !cltool_updateGpxFlashCfg(inertialSenseInterface, g_commandLineOptions.gpxFlashCfg))
+    {
+        cout << "Failed to update GPX flash config" << endl;
         return -1;
     }
     else if (!inertialSenseInterface.CreateHost(g_commandLineOptions.baseConnection))
@@ -707,6 +739,52 @@ static int cltool_createHost()
 
     // No need to Close() the InertialSense class interface; It will be closed when destroyed.
     return 0;
+}
+
+
+//void testtesty(unsigned int pHandle, p_data_t* data)
+// int testtesty(p_data_t* data, port_handle_t port)
+// {
+//     printf("AAAAAAAAASSSSSSSSSSSSV");
+//     return 0;
+// }
+
+void getMemoryEvent(InertialSense& inertialSenseInterface, uint32_t addrs, const std::string& destFolder, uint8_t addrCnts, bool IMX)
+{
+#define EVENT_MAX_SIZE (1024 + DID_EVENT_HEADER_SIZE)
+    uint8_t data[EVENT_MAX_SIZE] = { 0 };
+
+    did_event_t event;
+
+    event.time = 123;
+    event.senderSN = 0;
+    event.senderHdwId = 0;
+    event.length = sizeof(did_event_memReq_t);
+
+    did_event_memReq_t memReq;
+
+    //comManagerRegister(DID_EVENT, 0, testtesty, 0, 0, EVENT_MAX_SIZE, 0);
+
+    if (IMX)
+        event.msgTypeID = EVENT_MSG_TYPE_ID_IMX_MEM_READ;
+    else
+        event.msgTypeID = EVENT_MSG_TYPE_ID_GPX_MEM_READ;
+
+    memcpy(data, &event, DID_EVENT_HEADER_SIZE);
+
+    // Send STPB
+    inertialSenseInterface.StopBroadcasts(true);
+    
+    // Set DID_EVENT
+    inertialSenseInterface.GetData(DID_EVENT, 0, 0, 1);
+
+    memReq.reqAddr = addrs;
+    memcpy((void*)(data + DID_EVENT_HEADER_SIZE), &memReq, _MIN(sizeof(memReq), EVENT_MAX_SIZE - DID_EVENT_HEADER_SIZE));
+
+    // if (!port)
+    inertialSenseInterface.SendData(DID_EVENT, data, DID_EVENT_HEADER_SIZE + event.length, 0);
+
+    SLEEP_MS(100);
 }
 
 static int cltool_dataStreaming()
@@ -757,7 +835,7 @@ static int cltool_dataStreaming()
         return 0;
     }
 
-    int exitCode = 0;
+    int exitCode = EXIT_CODE_SUCCESS;
 
     // [C++ COMM INSTRUCTION] STEP 3: Enable data broadcasting
     if (cltool_setupCommunications(inertialSenseInterface))
@@ -773,6 +851,7 @@ static int cltool_dataStreaming()
             // No need to Close() the InertialSense class interface; It will be closed when destroyed.
             return -1;
         }
+
         try
         {
             if ((g_commandLineOptions.updateFirmwareTarget != fwUpdate::TARGET_HOST) && !g_commandLineOptions.fwUpdateCmds.empty()) {
@@ -808,13 +887,14 @@ static int cltool_dataStreaming()
             // yield to allow comms
             SLEEP_MS(1);
 
+            uint8_t loopCnt = 0;
+
             // [C++ COMM INSTRUCTION] STEP 4: Read data
             while (!g_inertialSenseDisplay.ExitProgram() && (!g_commandLineOptions.runDurationMs || (current_timeMs() < exitTime)))
             {
-
                 if (!inertialSenseInterface.Update())
                 {   // device disconnected, exit
-                    exitCode = -2;
+                    exitCode = EXIT_CODE_DEVICE_DISCONNECTED;
                     break;
                 }
 
@@ -829,7 +909,7 @@ static int cltool_dataStreaming()
                 // If updating firmware, and all devices have finished, Exit
                 if (g_commandLineOptions.updateFirmwareTarget != fwUpdate::TARGET_HOST) {
                     if (inertialSenseInterface.isFirmwareUpdateFinished()) {
-                        exitCode = inertialSenseInterface.isFirmwareUpdateSuccessful() ? 0 : -3;
+                        exitCode = inertialSenseInterface.isFirmwareUpdateSuccessful() ? EXIT_CODE_SUCCESS : EXIT_CODE_FIRMWARE_UPDATE_FAILED;
                         break;
                     }
                 } else {  // Only print the usual output if we AREN'T updating firmware...
@@ -846,6 +926,15 @@ static int cltool_dataStreaming()
                     cltool_requestDataSets(inertialSenseInterface, g_commandLineOptions.datasets);
                 }
 
+                if (g_commandLineOptions.evMCont.sendEVM && loopCnt < 10)
+                {
+                    getMemoryEvent(inertialSenseInterface, g_commandLineOptions.evMCont.Addrs[loopCnt],
+                        g_commandLineOptions.evMCont.outDir.c_str(),
+                        g_commandLineOptions.evMCont.addrCnt,
+                        g_commandLineOptions.evMCont.IMX);
+                    loopCnt++;
+                }
+
                 // Prevent processor overload
                 SLEEP_MS(1);
             }
@@ -855,19 +944,21 @@ static int cltool_dataStreaming()
             cout << "Unknown exception..." << endl;
         }
     }
+    else
+    {   // Failed to setup communications
+        cout << "Failed to setup communications!" << endl;
+        exitCode = EXIT_CODE_FAILED_TO_SETUP_COMMUNICATIONS;
+    }
 
     //If Firmware Update is specified return an error code based on the Status of the Firmware Update
     if ((g_commandLineOptions.updateFirmwareTarget != fwUpdate::TARGET_HOST) && g_commandLineOptions.updateAppFirmwareFilename.empty()) {
         for (auto& device : inertialSenseInterface.getDevices()) {
             if (device.fwUpdate.hasError) {
-                exitCode = -3;
+                exitCode = EXIT_CODE_FIRMWARE_UPDATE_FAILED;
                 break;
             }
         }
     }
-
-    // [C++ COMM INSTRUCTION] STEP 6: Close interface
-    // No need to Close() the InertialSense class interface; It will be closed when destroyed.
 
     return exitCode;
 }
@@ -924,7 +1015,7 @@ static int inertialSenseMain()
     else if (g_commandLineOptions.updateBootloaderFilename.length() != 0)
     {
         cout << "option -uf [FILENAME] must be used with option -ub [FILENAME] " << endl;
-        return -1;
+        return EXIT_CODE_INVALID_COMMAND_LINE;
     }
         // if host was specified on the command line, create a tcp server
     else if (g_commandLineOptions.baseConnection.length() != 0)
@@ -976,14 +1067,14 @@ int main(int argc, char* argv[])
     if (!cltool_parseCommandLine(argc, argv))
     {   // parsing failed
         g_inertialSenseDisplay.ShutDown();
-        return -1;
+        return EXIT_CODE_PARSE_COMMAND_LINE_FAILED;
     }
 
     g_inertialSenseDisplay.setOutputOnceDid(g_commandLineOptions.outputOnceDid);
 
     // InertialSense class example using command line options
-    int result = inertialSenseMain();
-    if (result == -1)
+    int exitCode = inertialSenseMain();
+    if (exitCode == EXIT_CODE_INVALID_COMMAND_LINE)
     {
         cltool_outputHelp();
 
@@ -993,5 +1084,5 @@ int main(int argc, char* argv[])
 
     g_inertialSenseDisplay.ShutDown();
 
-    return result;
+    return exitCode;
 }
