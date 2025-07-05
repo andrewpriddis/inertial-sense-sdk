@@ -1,7 +1,7 @@
 /*
 MIT LICENSE
 
-Copyright (c) 2014-2024 Inertial Sense, Inc. - http://inertialsense.com
+Copyright (c) 2014-2025 Inertial Sense, Inc. - http://inertialsense.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 
@@ -56,8 +56,12 @@ public:
 		LOGTYPE_CSV,
 		LOGTYPE_KML,
 		LOGTYPE_JSON,
+        LOGTYPE_COUNT,
         LOGTYPE_BRIO
 	};
+
+    // Static array of strings for log type names
+    static const char* logTypeStrings[LOGTYPE_COUNT];
 
     struct sSaveOptions
     {
@@ -285,6 +289,7 @@ private:
     bool					m_showPath = false;
     bool					m_showTimeStamp = false;
     double					m_iconUpdatePeriodSec = false;
+    time_t                  m_logStartTime = 0;
     time_t					m_lastCommTime = 0;
     time_t					m_timeoutFlushSeconds = 0;
     time_t					m_timeoutFileCullingSeconds = 10;

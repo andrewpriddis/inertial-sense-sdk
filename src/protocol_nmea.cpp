@@ -13,7 +13,7 @@
 #include "globals.h"
 #endif
 
-static int s_protocol_version = 0;
+static int s_protocol_version = NMEA_PROTOCOL_2P3;	// Default to protocol version 2.3
 static uint8_t s_gnssId = SAT_SV_GNSS_ID_GNSS;
 
 static struct  
@@ -279,6 +279,14 @@ char *ASCII_to_u32(uint32_t *val, char *ptr)
     return ptr;
 }
 
+char *ASCII_to_u64(uint64_t *val, char *ptr)
+{
+    char *endPtr = nullptr;
+    val[0] = (uint64_t)std::strtoll(ptr, &endPtr, 10); 
+    ptr = ASCII_find_next_field(ptr);
+    return ptr;
+}
+
 char *ASCII_to_i32(int32_t *val, char *ptr)
 {
     val[0] = (int32_t)atoi(ptr);	ptr = ASCII_find_next_field(ptr);
@@ -389,6 +397,7 @@ char *ASCII_to_hours_minutes_seconds(int *hours, int *minutes, float *seconds, c
     float subSec = UTCtime - (int)UTCtime;
     *seconds = (float)((int)UTCtime % 100) + subSec;
 #endif
+    *seconds += 0.00005f;   // add a 0.05ms to address float-conversion aliasing
     ptr = ASCII_find_next_field(ptr);
     return ptr;
 }
@@ -398,7 +407,7 @@ char *ASCII_UtcTimeToGpsTowMs(uint32_t *gpsTimeOfWeekMs, utc_time_t *utcTime, ch
     // HHMMSS.sss
     float fsecond;
     SSCANF(ptr, "%02d%02d%f", &utcTime->hour, &utcTime->minute, &fsecond);
-    fsecond += 0.0005f;	// Prevent truncation problems.  Cause rounding at 0.5 ms.
+    fsecond += 0.00005f;	/// add a 0.05ms to address float-conversion aliasing
     utcTime->second = (uint32_t)fsecond;
     fsecond *= 1000.0f;
     utcTime->millisecond = (uint32_t)fsecond;
@@ -438,7 +447,7 @@ void nmea_enable_stream(uint32_t& bits, uint8_t* period, uint32_t nmeaId, uint8_
     period[nmeaId] = periodMultiple;
 
     if (periodMultiple)
-        bits |=  (nmeaBits);
+        bits |= (nmeaBits);
     else
         bits &= ~(nmeaBits);
 }
@@ -731,7 +740,8 @@ void nmea_GPSTimeToUTCTimeMsPrecision_ZDA_debug(char* a, int aSize, int &offset,
     utc_time_t t;
     gpsTowMsToUtcTime(pos.timeOfWeekMs, pos.leapS, &t);
 
-#if defined(IMX_5) || defined(SDK_UNIT_TEST)
+#if 0
+// #if defined(IMX_5) || defined(SDK_UNIT_TEST)
     ///////////////////////////////////////////////////////////////////////
     // TODO: (WHJ) ZDA debug.  Remove after ZDA time skip issue is resolved. (SN-6066)
 
@@ -758,41 +768,45 @@ void nmea_GPSTimeToUTCTimeMsPrecision_ZDA_debug(char* a, int aSize, int &offset,
 
     // Check for irregular update timing
     int32_t cpuDtMs = cpuMs - lastCpuMs;
-    bool cpuDtMsGood = _ABS(cpuDtMs) < 30000;
+    bool cpuDtMsGood = _ABS(cpuDtMs) < 5000;
 
     // Check for skip in ZDA time
     int32_t utcDtMs = utcMs - lastUtcMs;
-    bool utcDtMsGood = (t.hour >= lastUtcHour) && (_ABS(utcDtMs) < 30000); 
+    bool utcDtMsGood = (t.hour >= lastUtcHour) && (_ABS(utcDtMs) < 5000); 
 
     // Ensure time increments linearly
     int32_t ddtMs = utcDtMs - cpuDtMs;
     if (cpuDtMsGood && utcDtMsGood)
     {   // No time wrap
         g_debug.i[3] = utcDtMs;
-        g_debug.i[4] = cpuDtMs;
+        // g_debug.i[4] = cpuDtMs;
         int adjOffsetSec = millisecondsToSeconds(ddtMs);
         if (adjOffsetSec)
         {
             utcOffsetSec += adjOffsetSec;
-            g_sysParams.genFaultCode |= GFC_GNSS_TIME_FAULT;
+
+            g_sysParams.genFaultCode |= GFC_GNSS_RECEIVER_TIME;
 #if PLATFORM_IS_EMBEDDED
             g_gnssTimeFaultTimeMs = g_timeMs;
 #endif
-            g_debug.i[5] = utcOffsetSec;
+            //g_debug.i[5] = utcMs;
+            g_debug.f[5] = utcDtMs;
+            g_debug.f[6] = cpuDtMs;
+            g_debug.f[8] += 1.0f;
             if (_ABS(utcOffsetSec) > 2)
             {   // Offset exceeded limit
                 utcOffsetSec = 0;
             }
         }
-        g_debug.i[6] = utcOffsetSec;
     }
+    g_debug.f[7] = utcOffsetSec;
 
     // Update history
     lastCpuMs = cpuMs;
     lastUtcMs = utcMs;
     lastUtcHour = t.hour;
 
-    // Apply correction offset
+#if 0    // Apply correction offset
     if (utcOffsetSec)
     {
         t.second -= utcOffsetSec;
@@ -817,6 +831,7 @@ void nmea_GPSTimeToUTCTimeMsPrecision_ZDA_debug(char* a, int aSize, int &offset,
             }
         }
     }
+#endif
 
     // TODO: (WHJ) End of debug section
     ///////////////////////////////////////////////////////////////////////
@@ -913,16 +928,28 @@ int nmea_gll(char a[], const int aSize, gps_pos_t &pos)
          4916.46,N    Latitude 49 deg. 16.45 min. North
          12311.12,W   Longitude 123 deg. 11.12 min. West
          225444.800   Fix taken at 22:54:44.8 UTC
-         A            Data Active or V (void)
+         A            Data status: A (active) or V (void)
          *iD          checksum data
     */
-
+    
     int n = nmea_talker(a, aSize);
     nmea_sprint(a, aSize, n, "GLL");
-    nmea_latToDegMin(a, aSize, n, pos.lla[0]);                      // 1,2
-    nmea_lonToDegMin(a, aSize, n, pos.lla[1]);                      // 3,4
-    nmea_GPSTimeToUTCTimeMsPrecision(a, aSize, n, pos);                        // 5
-    nmea_sprint(a, aSize, n, ",A");                                 // 6
+
+    if (pos.status&GPS_STATUS_FIX_MASK)
+    {   // Valid lat/lon
+        nmea_latToDegMin(a, aSize, n, pos.lla[0]);      // 1,2
+        nmea_lonToDegMin(a, aSize, n, pos.lla[1]);      // 3,4
+    }
+    else // Invalid lat/lon
+        nmea_sprint(a, aSize, n, ",,,,");               // 1,2,3,4
+        
+    nmea_GPSTimeToUTCTimeMsPrecision(a, aSize, n, pos); // 5
+
+    if (pos.week > 2269) // Time is valid so set to active
+        nmea_sprint(a, aSize, n, ",A");                 // 6
+    else // Time is invalid so set to void
+        nmea_sprint(a, aSize, n, ",V");                 // 6
+
     return nmea_sprint_footer(a, aSize, n);
 }
 
@@ -1233,6 +1260,119 @@ int nmea_intel(char a[], const int aSize, dev_info_t &info, gps_pos_t &pos, gps_
     return nmea_sprint_footer(a, aSize, n);
 }
 
+/**
+ * @brief Preps fields 1-6 of $POWxxx prorietary NMEA message
+ * 
+ * @param a[] - output buffer
+ * @param startN - starting index in output buffer
+ * @param aSize - size of output buffer
+ * @param pos - gps position data
+ * 
+ * @note output message format: 
+ *  1   GPS Time Quality (0=invalid, 1=valid)
+ *  2   GPS Week Number
+ *  3   GPS Time of Week (micro seconds)
+ *  4   GPS leap seconds validity (0=invalid, 1=valid)
+ *  5   GPS leap seconds
+ *  6   Holdover flag (0=no holdover, 1=EGR is in holdover)
+ */
+int nmea_powPrep(char a[], int startN, const int aSize, gps_pos_t &pos)
+{  
+    int n = startN;
+    int valid = (pos.week > 2359) ? 1 : 0; // assume time is valid if week > 2359 (03/23/2025)
+
+    nmea_sprint(a, aSize, n, ",%d", valid);                 // 1
+    nmea_sprint(a, aSize, n, ",%d", pos.week);              // 2
+    nmea_sprint(a, aSize, n, ",%" PRIu64, ((uint64_t)pos.timeOfWeekMs)*1000); // 3
+
+    valid = (pos.leapS > 10 && pos.leapS < 30) ? 1 : 0;     // should be ~18 so give a little leeway
+    nmea_sprint(a, aSize, n, ",%d", valid);                 // 4
+    nmea_sprint(a, aSize, n, ",%d", pos.leapS);             // 5
+
+    nmea_sprint(a, aSize, n, ",%d", 0);                     // 6
+
+    return n;
+}
+
+/**
+ * @brief creates $POWGPS prorietary NMEA message
+ * 
+ * @param a[] - output buffer
+ * @param aSize - size of output buffer
+ * @param pos - gps position data
+ * 
+ * @note output message format:
+ *  0   Message ID $POWGPS
+ *  1   GPS Time Quality (0=invalid, 1=valid)
+ *  2   GPS Week Number
+ *  3   GPS Time of Week (micro seconds)
+ *  4   GPS leap seconds validity (0=invalid, 1=valid)
+ *  5   GPS leap seconds
+ *  6   Holdover flag (0=no holdover, 1=EGR is in holdover)
+ *  7   Checksum, begins with *
+ */
+int nmea_powgps(char a[], const int aSize, gps_pos_t &pos)
+{
+    int n = ssnprintf(a, aSize, "$POWGPS");     // 0
+
+    n = nmea_powPrep(a, n, aSize, pos);         // 1-6
+
+    return nmea_sprint_footer(a, aSize, n);
+}
+
+/**
+ * @brief $POWTLV prorietary NMEA message
+ * 
+ * @param a[] - output buffer
+ * @param aSize - size of output buffer
+ * @param pos - gps position data
+ * @param vel - gps velocity data
+ * 
+ * @note output message format: 
+ *  0   Message ID $POWGPS
+ *  1   GPS Time Quality (0=invalid, 1=valid)
+ *  2   GPS Week Number
+ *  3   GPS Time of Week (micro seconds)
+ *  4   GPS leap seconds validity (0=invalid, 1=valid)
+ *  5   GPS leap seconds
+ *  6   Holdover flag (0=no holdover, 1=EGR is in holdover)
+ *  7   Latitude ddmm.mmmm
+ *  8   North/South indicator (N/S)
+ *  9   Longitude dddmm.mmmm
+ *  10  East/West indicator (E/W)
+ *  11  Altitude (x.xxx meters)
+ *  12  Mean Sea Level (MSL) (x.xxx meters)
+ *  13  Horizontal Speed (x.xxx m/s)
+ *  14  Vertical Speed (x.xxx m/s)
+ *  15  Heading (x.xxx degrees)
+ *  16  Checksum, begins with *
+ */
+int nmea_powtlv(char a[], const int aSize, gps_pos_t &pos, gps_vel_t &vel)
+{    
+    float horVel = MAG_VEC2(vel.vel);
+    float groundTrackHeading = 0;
+
+    int n = ssnprintf(a, aSize, "$POWTLV");                     // 0
+    
+    update_nmea_speed(pos, vel);
+
+    n = nmea_powPrep(a, n, aSize, pos);                         // 1-6
+
+    nmea_latToDegMin(a, aSize, n, pos.lla[0]);                  // 7,8
+    nmea_lonToDegMin(a, aSize, n, pos.lla[1]);                  // 9,10
+
+    nmea_sprint(a, aSize, n, ",%.3f", pos.lla[2]);              // 11
+    nmea_sprint(a, aSize, n, ",%.3f", pos.hMSL);                // 12
+
+    nmea_sprint(a, aSize, n, ",%.3f", horVel);                  // 13
+
+    nmea_sprint(a, aSize, n, ",%.3f", vel.vel[2]);              // 14
+
+    groundTrackHeading = C_RAD2DEG_F * atan2f(vel.vel[1], vel.vel[0]);
+    nmea_sprint(a, aSize, n, ",%.3f", groundTrackHeading);      // 15
+
+    return nmea_sprint_footer(a, aSize, n);                     // 16
+}
 
 void print_string_n(char a[], int n)
 {
@@ -2505,13 +2645,39 @@ int nmea_parse_gll(const char a[], const int aSize, gps_pos_t &gpsPos, utc_time_
     (void)aSize;
     char *ptr = (char *)&a[7];	// $GxGLL,
     
-    // 1,2 - Latitude (deg)
-    ptr = ASCII_DegMin_to_Lat(&(gpsPos.lla[0]), ptr);
-    // 3,4 - Longitude (deg)
-    ptr = ASCII_DegMin_to_Lon(&(gpsPos.lla[1]), ptr);
+    if (*ptr == ',')
+    {   // pos has no value 
+        // 1,2 - Latitude (deg)
+        gpsPos.lla[0] = 0;
+        // 3,4 - Longitude (deg)
+        gpsPos.lla[1] = 0;
+
+        // set status to no fix
+        gpsPos.status &= ~GPS_STATUS_FIX_MASK;
+
+        ptr += 4;
+    }
+    else
+    {   // pos has a value
+        // 1,2 - Latitude (deg)
+        ptr = ASCII_DegMin_to_Lat(&(gpsPos.lla[0]), ptr);
+        // 3,4 - Longitude (deg)
+        ptr = ASCII_DegMin_to_Lon(&(gpsPos.lla[1]), ptr);
+        
+        gpsPos.status |= GPS_STATUS_FIX_2D;
+    }
+
     // 5 - UTC time HHMMSS.sss
     ptr = ASCII_UtcTimeToGpsTowMs(&gpsPos.timeOfWeekMs, &utcTime, ptr, utcWeekday, gpsPos.leapS);
+    
     // 6 - Valid (A=active, V=void)
+    if (*ptr != 'A')             
+    {
+        gpsPos.status &= ~GPS_STATUS_FIX_MASK;
+        gpsPos.timeOfWeekMs = 0;
+        gpsPos.lla[0] = 0.0;
+        gpsPos.lla[1] = 0.0;
+    }
 
     return 0;
 }
@@ -2715,6 +2881,153 @@ int nmea_parse_intel(const char a[], const int aSize, dev_info_t &info, gps_pos_
     return 0;
 }
 
+/**
+ * @brief $POWGPS prorietary NMEA message
+ * 
+ * @param a[]  NMEA string
+ * @param aSize  NMEA string size
+ * @param pos  GPS position structure
+ * 
+ * @note
+ *  0   Message ID $POWGPS
+ *  1   GPS Time Quality (0=invalid, 1=valid)
+ *  2   GPS Week Number
+ *  3   GPS Time of Week (micro seconds)
+ *  4   GPS leap seconds validity (0=invalid, 1=valid)
+ *  5   GPS leap seconds
+ *  6   Holdover flag (0=no holdover, 1=EGR is in holdover)
+ *  7  Checksum, begins with *
+ */
+int nmea_parse_powgps(const char a[], const int aSize, gps_pos_t &pos)
+{
+    /*  $POWGPS prorietary NMEA message
+            0   Message ID $POWGPS
+            1   GPS Time Quality (0=invalid, 1=valid)
+            2   GPS Week Number
+            3   GPS Time of Week (micro seconds)
+            4   GPS leap seconds validity (0=invalid, 1=valid)
+            5   GPS leap seconds
+            6   Holdover flag (0=no holdover, 1=EGR is in holdover)
+            7   Checksum, begins with *
+    */
+    (void)aSize;
+    uint64_t TOWus;
+    char *ptr = (char *)&a[8];	// $POWGPS,
+    uint32_t timeValid;
+    uint32_t lsValid;
+    
+    // 1 -	GPS Time valid
+    ptr = ASCII_to_u32(&timeValid, ptr);
+
+    // 2 -	GPS week number
+    ptr = ASCII_to_u32(&(pos.week), ptr);
+
+    // 3 -	GPS Time of Week (us)
+    ptr = ASCII_to_u64(&TOWus, ptr);
+    pos.timeOfWeekMs = TOWus/1000;
+    
+    // 4 -	GPS leap seconds valid
+    ptr = ASCII_to_u32(&lsValid, ptr);
+    
+    // 5 -	GPS leap seconds
+    ptr = ASCII_to_u8(&(pos.leapS), ptr);
+
+    // 6 -	Holdover flag (0=no holdover, 1=EGR is in holdover)
+
+    if (lsValid == 0) { pos.leapS = 0; }
+    if (timeValid == 0) { pos.timeOfWeekMs = 0; pos.week = 0; }
+
+    return 0;
+}
+
+/**
+ * @brief $POWTLV prorietary NMEA message
+ * 
+ * @param a[]  NMEA string
+ * @param aSize  NMEA string size
+ * @param pos  GPS position structure
+ * @param vel  GPS velocity structure
+ * 
+ * @note
+ *  0   Message ID $POWGPS
+ *  1   GPS Time Quality (0=invalid, 1=valid)
+ *  2   GPS Week Number
+ *  3   GPS Time of Week (micro seconds)
+ *  4   GPS leap seconds validity (0=invalid, 1=valid)
+ *  5   GPS leap seconds
+ *  6   Holdover flag (0=no holdover, 1=EGR is in holdover)
+ *  7   Latitude ddmm.mmmm
+ *  8   North/South indicator (N/S)
+ *  9   Longitude dddmm.mmmm
+ *  10  East/West indicator (E/W)
+ *  11  Altitude (x.xxx meters)
+ *  12  Mean Sea Level (MSL) (x.xxx meters)
+ *  13  Horizontal Speed (x.xxx m/s)
+ *  14  Vertical Speed (x.xxx m/s)
+ *  15  Heading (x.xxx degrees)
+ *  16  Checksum, begins with *
+ */
+int nmea_parse_powtlv(const char a[], const int aSize, gps_pos_t &pos, gps_vel_t &vel)
+{
+    (void)aSize;
+    uint64_t TOWus;
+    char *ptr = (char *)&a[8];	// $POWGPS,
+    uint32_t temp;
+    float horVel, courseMadeTrue;
+    
+    // 1 -	GPS Time valid
+    ptr = ASCII_to_u32(&temp, ptr);
+
+    // 2 -	GPS week number
+    ptr = ASCII_to_u32(&(pos.week), ptr);
+
+    // 3 -	GPS Time of Week (us)
+    ptr = ASCII_to_u64(&TOWus, ptr);
+    pos.timeOfWeekMs = TOWus/1000;	// convert to seconds
+
+    // if time is not valid, set time to 0
+    if (temp == 0) { pos.timeOfWeekMs = 0; pos.week = 0; }
+    
+    // 4 -	GPS leap seconds valid
+    ptr = ASCII_to_u32(&temp, ptr);
+    
+    // 5 -	GPS leap seconds
+    ptr = ASCII_to_u8(&(pos.leapS), ptr);
+
+    // if LS not valid, set to 0
+    if (temp == 0) { pos.leapS = 0; }
+
+    // 6 -	Holdover flag (0=no holdover, 1=EGR is in holdover)
+    ptr = ASCII_to_u32(&temp, ptr);
+
+    // 7,8 -  Latitude ddmm.mmmm, North/South indicator (N/S)
+    ptr = ASCII_DegMin_to_Lat(&(pos.lla[0]), ptr);
+    
+    // 9,10 -  Longitude dddmm.mmmm, East/West indicator (E/W)
+    ptr = ASCII_DegMin_to_Lon(&(pos.lla[1]), ptr);
+
+    // 11 - Altitude (x.xxx meters)
+    ptr = ASCII_to_f64(&(pos.lla[2]), ptr);
+
+    // 12 - Mean Sea Level (MSL) (x.xxx meters)
+    ptr = ASCII_to_f32(&(pos.hMSL), ptr);
+
+    // 13 - Horizontal Speed (x.xxx m/s)
+    ptr = ASCII_to_f32(&horVel, ptr);
+
+    // 14 - Vertical Speed (x.xxx m/s)
+    ptr = ASCII_to_f32(&vel.vel[2], ptr);
+
+    // 15 - Heading (x.xxx degrees)
+    ptr = ASCII_to_f32(&courseMadeTrue, ptr);
+    courseMadeTrue *= C_DEG2RAD_F;
+
+    vel.vel[0] = horVel * cosf(courseMadeTrue);
+    vel.vel[1] = horVel * sinf(courseMadeTrue);
+
+    return 0;
+}
+
 /* G_RMC Message
 * Provides speed (speed and course over ground)
 */
@@ -2818,7 +3131,7 @@ int nmea_parse_zda(const char a[], int aSize, uint32_t &gpsTowMs, uint32_t &gpsW
     float second;
     ptr = ASCII_to_hours_minutes_seconds(&time.hour, &time.minute, &second, ptr);
     time.second = (int)second;
-    time.millisecond = ((int)(second*1000.0f))%1000;
+    time.millisecond = (int)(second*1000.0f) - 1000*time.second;
 
     // 2,3,4 - dd,mm,yyy (Day,Month,Year)
     ptr = ASCII_to_i32((int32_t*)&(date.day), ptr);
@@ -2826,12 +3139,11 @@ int nmea_parse_zda(const char a[], int aSize, uint32_t &gpsTowMs, uint32_t &gpsW
     ptr = ASCII_to_i32((int32_t*)&(date.year), ptr);
 
     // Convert UTC date and time to GPS time of week and number of weeks		
-    double datetime[6] = { (double)date.year, (double)date.month, (double)date.day, (double)time.hour, (double)time.minute, (double)second };		// year,month,day,hour,min,sec
+    int datetime[7] = { date.year, date.month, date.day, time.hour, time.minute, time.second, time.millisecond };		// year,month,day,hour,min,sec,msec
     UtcDateTimeToGpsTime(datetime, leapS, gpsTowMs, gpsWeek);
     date.weekday = gpsTowMsToUtcWeekday(gpsTowMs, leapS);
 
     // 5,6 - Local time zone offset from GMT (00,00)
-
     return 0;
 }
 

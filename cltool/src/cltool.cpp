@@ -1,7 +1,7 @@
 /*
 MIT LICENSE
 
-Copyright (c) 2014-2024 Inertial Sense, Inc. - http://inertialsense.com
+Copyright (c) 2014-2025 Inertial Sense, Inc. - http://inertialsense.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 
@@ -12,6 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "cltool.h"
 #include <string.h>
+#include <chrono>
+#include <ctime>
 #include "ISDataMappings.h"
 
 using namespace std;
@@ -20,6 +22,7 @@ cmd_options_t g_commandLineOptions = {};
 serial_port_t g_serialPort;
 cInertialSenseDisplay g_inertialSenseDisplay;
 static bool g_internal = false;
+gpx_flash_cfg_t g_gpxFlashCfg_upload = {};
 
 int cltool_serialPortSendComManager(CMHANDLE cmHandle, int pHandle, buffer_t* bufferToSend)
 {
@@ -314,6 +317,75 @@ bool cltool_parseCommandLine(int argc, char* argv[])
             printf("EVF Enabled!");
 
         }
+        else if (startsWith(a, "-evmi=") || startsWith(a, "-evmg="))
+        {
+            printf("Parsing EVM!\n");
+
+            char* token = strtok((char*)&a[6], ",");
+
+            if (token != NULL)
+            {
+                g_commandLineOptions.evMCont.outDir = token;
+                printf("EVM Directory: %s\n", g_commandLineOptions.evMCont.outDir.c_str());
+            }
+            else
+            {
+                printf("EVM Directory missing arg example \"evmi=/tmp/,H,0x2002130,0x00002345\"\n");
+                continue;
+            }
+
+            token = strtok(NULL, ",");
+
+            if (token != NULL)
+            {
+                g_commandLineOptions.evMCont.hex = (token[0] == 'H') || (token[0] == 'h');
+                
+                if (g_commandLineOptions.evMCont.hex)
+                    printf("EVM HEX mode!\n");
+                else
+                    printf("EVM INT mode!\n");
+            }
+            else
+            {
+                printf("EVM Mode missing arg example \"evmi=/tmp/,H,20021a0,0x00002f45\"\n");
+                continue;
+            }
+
+            token = strtok(NULL, ",");
+            // allow 0x00000001-0x08000000,0x10000000-0x200bff00 0x40000000-0x5fffffff,  
+            for (g_commandLineOptions.evMCont.addrCnt = 0; g_commandLineOptions.evMCont.addrCnt < 10 && token != NULL; g_commandLineOptions.evMCont.addrCnt++)
+            {
+                int temp = 0;
+                if (g_commandLineOptions.evMCont.hex)
+                    temp = stoi(token, nullptr, 16);
+                else
+                    g_commandLineOptions.evMCont.Addrs[g_commandLineOptions.evMCont.addrCnt] = stoi(token);
+                
+                // allow 0x00000001-0x08000000,0x10000000-0x200bff00 0x40000000-0x5fffffff 
+                if ((temp > 0 && temp < 0x08000000) || 
+                    (temp > 0x10000000 && temp < 0x200bff00) || 
+                    (temp > 0x40000000 && temp < 0x5fffffff))
+                {
+                    g_commandLineOptions.evMCont.Addrs[g_commandLineOptions.evMCont.addrCnt] = temp;
+                    printf("Found valid Address: 0x%08x\n", temp);
+                }
+                else
+                {
+                    g_commandLineOptions.evMCont.addrCnt--;
+                    printf("0x%08x: is not in valid range(allowed:0x00000001-0x08000000,0x10000000-0x200bff00 0x40000000-0x5fffffff)\n", temp);
+                }
+
+                token = strtok(NULL, ",");
+            }
+
+            if (g_commandLineOptions.evMCont.addrCnt)
+            {
+                g_commandLineOptions.evMCont.sendEVM = true;
+                g_commandLineOptions.evMCont.IMX = startsWith(a, "-evmi=");
+
+                printf("EVM Enabled!");
+            }
+        }
         else if (startsWith(a, "-evo"))
         {
             if ((i + 3) < argc)
@@ -347,12 +419,27 @@ bool cltool_parseCommandLine(int argc, char* argv[])
         }
         else if (startsWith(a, "-flashCfg="))
         {
-            g_commandLineOptions.flashCfg = &a[10];
+            g_commandLineOptions.imxFlashCfg = &a[10];
             g_commandLineOptions.displayMode = cInertialSenseDisplay::eDisplayMode::DMODE_QUIET;
         }
-        else if (startsWith(a, "-flashCfg"))
+        else if (startsWith(a, "-imxFlashCfg="))
         {
-            g_commandLineOptions.flashCfg = ".";
+            g_commandLineOptions.imxFlashCfg = &a[13];
+            g_commandLineOptions.displayMode = cInertialSenseDisplay::eDisplayMode::DMODE_QUIET;
+        }
+        else if (startsWith(a, "-flashCfg") || startsWith(a, "-imxFlashCfg"))
+        {
+            g_commandLineOptions.imxFlashCfg = ".";
+            g_commandLineOptions.displayMode = cInertialSenseDisplay::eDisplayMode::DMODE_QUIET;
+        }
+        else if (startsWith(a, "-gpxFlashCfg="))
+        {
+            g_commandLineOptions.gpxFlashCfg = &a[13];
+            g_commandLineOptions.displayMode = cInertialSenseDisplay::eDisplayMode::DMODE_QUIET;
+        }
+        else if (startsWith(a, "-gpxFlashCfg"))
+        {
+            g_commandLineOptions.gpxFlashCfg = ".";
             g_commandLineOptions.displayMode = cInertialSenseDisplay::eDisplayMode::DMODE_QUIET;
         }
         else if (startsWith(a, "-hi") || startsWith(a, "--hi"))
@@ -914,16 +1001,19 @@ void cltool_outputUsage()
 	cout << "    -rp " << boldOff << "PATH        Replay data log from PATH" << endlbOn;
 	cout << "    -rs=" << boldOff << "SPEED       Replay data log at x SPEED. SPEED=0 runs as fast as possible." << endlbOn;
 	cout << endlbOn;
-	cout << "OPTIONS (Read flash configuration from command line)" << endl;
-	cout << "    -flashCfg" << boldOff  <<  "                                   # List all \"keys\" and \"values\"" << endlbOn;
-	cout << "   \"-flashCfg=[key]|[key]|[key]\"" << boldOff << "                # List select values" <<  endlbOn;
+	cout << "OPTIONS (READ flash config)" << endl;
+	cout << "    -imxFlashCfg" << boldOff  <<  "                                # List all \"keys\" and \"values\" in IMX" << endlbOn;
+	cout << "    -gpxFlashCfg" << boldOff  <<  "                                # List all \"keys\" and \"values\" in GPX" << endlbOn;
+	cout << "    \"-imxFlashCfg=[key]|[key]|[key]\"" << boldOff << "            # List specific IMX values" <<  endlbOn;
+	cout << "    \"-gpxFlashCfg=[key]|[key]|[key]\"" << boldOff << "            # List specific GPX values" <<  endlbOn;
 	cout << endl;
-	cout << "OPTIONS (Write flash configuration from command line)" << endl;
-	cout << "   \"-flashCfg=[key]=[value]|[key]=[value]\"" << boldOff << "      # Set key / value pairs in flash config. " << endlbOn;
+	cout << "OPTIONS (WRITE flash config)" << endl;
+	cout << "    \"-imxFlashCfg=[key]=[value]|[key]=[value]\"" << boldOff << "  # Set key / value pairs in IMX flash config. " << endlbOn;
+	cout << "    \"-gpxFlashCfg=[key]=[value]|[key]=[value]\"" << boldOff << "  # Set key / value pairs in GPX flash config. " << endlbOn;
 	cout << "        " << boldOff <<   "                                        # Surround with \"quotes\" when using pipe operator." << endlbOn;
 	cout << "EXAMPLES" << endlbOn;
-	cout << "    " << APP_NAME << APP_EXT << " -c " << EXAMPLE_PORT << " -flashCfg  " << boldOff << "# Read from device and print all keys and values" << endlbOn;
-	cout << "    " << APP_NAME << APP_EXT << " -c " << EXAMPLE_PORT << " \"-flashCfg=insOffset[1]=1.2|=ser2BaudRate=115200\"  " << boldOff << "# Set multiple values" << endlbOn;
+	cout << "    " << APP_NAME << APP_EXT << " -c " << EXAMPLE_PORT << " -imxFlashCfg  " << boldOff << "# Read from device and print all keys and values" << endlbOn;
+	cout << "    " << APP_NAME << APP_EXT << " -c " << EXAMPLE_PORT << " \"-imxFlashCfg=insOffset[1]=1.2|=ser2BaudRate=115200\"  " << boldOff << "# Set multiple values" << endlbOn;
 	cout << endl;
 	cout << "OPTIONS (RTK Rover / Base)" << endlbOn;
 	cout << "    -rover=" << boldOff << "[type]:[IP or URL]:[port]:[mountpoint]:[username]:[password]" << endl;
@@ -931,9 +1021,9 @@ void cltool_outputUsage()
 	cout << "            -rover=TCP:RTCM3:192.168.1.100:7777:mountpoint:username:password   (NTRIP)" << endl;
 	cout << "            -rover=TCP:RTCM3:192.168.1.100:7777" << endl;
 	cout << "            -rover=TCP:UBLOX:192.168.1.100:7777" << endl;
-	cout << "            -rover=SERIAL:RTCM3:" << EXAMPLE_PORT << ":57600             (port, baud rate)" << endlbOn;
+	cout << "            -rover=SERIAL:RTCM3:" << EXAMPLE_PORT << ":57600        (port, baud rate)" << endlbOn;
 	cout << "    -base=" << boldOff << "[IP]:[port]   As a Base (sever), send RTK corrections.  Examples:" << endl;
-	cout << "            -base=TCP::7777                            (IP is optional)" << endl;
+	cout << "            -base=TCP::7777                             (IP is optional)" << endl;
 	cout << "            -base=TCP:192.168.1.43:7777" << endl;
 	cout << "            -base=SERIAL:" << EXAMPLE_PORT << ":921600" << endl;
 	cout << endlbOn;	
@@ -965,16 +1055,37 @@ int extract_array_index(std::string &str)
     return arrayIndex;
 }
 
-bool cltool_updateFlashCfg(InertialSense& inertialSenseInterface, string flashCfgString)
+bool cltool_updateImxFlashCfg(InertialSense& inertialSenseInterface, string flashCfgString)
 {
-    inertialSenseInterface.WaitForFlashSynced();
+    if (!inertialSenseInterface.WaitForImxFlashCfgSynced())
+    {
+        cout << "Failed to sync IMX flash config." << endl;
+        return false;
+    }
+    nvm_flash_cfg_t imxFlashCfg;
+    inertialSenseInterface.ImxFlashConfig(imxFlashCfg);
+    return cltool_updateFlashCfg(inertialSenseInterface, flashCfgString, DID_FLASH_CONFIG, (uint8_t*)&imxFlashCfg);
+}
 
-    nvm_flash_cfg_t flashCfg;
-    inertialSenseInterface.FlashConfig(flashCfg);
-    const map_name_to_info_t& flashMap = *cISDataMappings::NameToInfoMap(DID_FLASH_CONFIG);
+bool cltool_updateGpxFlashCfg(InertialSense& inertialSenseInterface, string flashCfgString)
+{
+    if (!inertialSenseInterface.WaitForGpxFlashCfgSynced())
+    {
+        cout << "Failed to sync GPX flash config." << endl;
+        return false;
+    }
+    gpx_flash_cfg_t gpxFlashCfg;
+    inertialSenseInterface.GpxFlashConfig(gpxFlashCfg);
+    return cltool_updateFlashCfg(inertialSenseInterface, flashCfgString, DID_GPX_FLASH_CFG, (uint8_t*)&gpxFlashCfg);
+}
+
+bool cltool_updateFlashCfg(InertialSense& inertialSenseInterface, string flashCfgString, uint32_t did, uint8_t* dataPtr)
+{
+    bool success = false;
+    const map_name_to_info_t& flashMap = *cISDataMappings::NameToInfoMap(did);
 
     if (flashCfgString.length() < 2)
-    {   // Display entire flash config
+    {   // Read and display entire flash config
         data_mapping_string_t stringBuffer;
         cout << "Current flash config" << endl;
         for (map_name_to_info_t::const_iterator i = flashMap.begin(); i != flashMap.end(); i++)
@@ -984,23 +1095,25 @@ bool cltool_updateFlashCfg(InertialSense& inertialSenseInterface, string flashCf
             {   // Array
                 for (int i=0; i < info.arraySize; i++)
                 {
-                    if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)&flashCfg, stringBuffer, i))
+                    if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)dataPtr, stringBuffer, i))
                     {
                         cout << info.name << "[" << i << "] = " << stringBuffer << endl;
+                        success = true;
                     }
                 }
             }
             else
             {   // Single Elements
-                if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)&flashCfg, stringBuffer))
+                if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)dataPtr, stringBuffer))
                 {
                     cout << info.name << " = " << stringBuffer << endl;
+                    success = true;
                 }
             }
         }
     }
     else
-    {
+    {   // Read or write specific flash config parameters
         vector<string> keyValues;
         bool modified = false;
 
@@ -1030,11 +1143,12 @@ bool cltool_updateFlashCfg(InertialSense& inertialSenseInterface, string flashCf
                             {   // Array: all elements 
                                 for (int arrayIndex=0; arrayIndex<info.arraySize; arrayIndex++)
                                 {
-                                    if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)&flashCfg, stringBuffer, arrayIndex))
+                                    if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)dataPtr, stringBuffer, arrayIndex))
                                     {
                                         cout << info.name << "[" << arrayIndex << "] = " << stringBuffer << endl;
                                     }
                                 }
+                                success = true;
                             }
                             else
                             {   // Array: Single element
@@ -1044,17 +1158,19 @@ bool cltool_updateFlashCfg(InertialSense& inertialSenseInterface, string flashCf
                                     return false;
                                 }
                      
-                                if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)&flashCfg, stringBuffer, _MAX(0, arrayIndex)))
+                                if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)dataPtr, stringBuffer, _MAX(0, arrayIndex)))
                                 {
                                     cout << info.name << "[" << arrayIndex << "] = " << stringBuffer << endl;
+                                    success = true;
                                 }
                             }
                         }
                         else
                         {   // Single element
-                            if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)&flashCfg, stringBuffer))
+                            if (cISDataMappings::DataToString(info, NULL, (const uint8_t*)dataPtr, stringBuffer))
                             {
                                 cout << info.name << " = " << stringBuffer << endl;
+                                success = true;
                             }
                         }
                     }
@@ -1072,7 +1188,7 @@ bool cltool_updateFlashCfg(InertialSense& inertialSenseInterface, string flashCf
 
                 if (flashMap.find(keyAndValue[0]) == flashMap.end())
                 {   
-                    cout << "Unrecognized DID_FLASH_CONFIG key '" << keyAndValue[0] << "' specified, ignoring." << endl;
+                    cout << "Unrecognized " << cISDataMappings::DataName(did) << " key '" << keyAndValue[0] << "' specified, ignoring." << endl;
                 }
                 else
                 {
@@ -1088,22 +1204,36 @@ bool cltool_updateFlashCfg(InertialSense& inertialSenseInterface, string flashCf
                         str = str.substr(2);
                     }
                     // Address how elem 
-                    cISDataMappings::StringToData(str.c_str(), (int)str.length(), NULL, (uint8_t*)&flashCfg, info, _MAX(0, arrayIndex));
-                    cout << "Setting DID_FLASH_CONFIG." << keyAndValue[0] << " = " << keyAndValue[1].c_str() << endl;
+                    cISDataMappings::StringToData(str.c_str(), (int)str.length(), NULL, (uint8_t*)dataPtr, info, _MAX(0, arrayIndex));
+                    cout << "Setting " << cISDataMappings::DataName(did) << "." << keyAndValue[0] << " = " << keyAndValue[1].c_str() << endl;
                     modified = true;
+                    success = true;
                 }
             }
         }
 
         if (modified)
         {   // Upload flash config
-            inertialSenseInterface.SetFlashConfig(flashCfg);
+            nvm_flash_cfg_t *imxFlashCfg;
+            gpx_flash_cfg_t *gpxFlashCfg;
+            switch (did)
+            {
+            case DID_FLASH_CONFIG:  
+                imxFlashCfg = (nvm_flash_cfg_t*)dataPtr; 
+                inertialSenseInterface.SetImxFlashConfig(*imxFlashCfg);  
+                inertialSenseInterface.WaitForImxFlashCfgSynced();
+                break;
 
-            // Check that upload completed
-            inertialSenseInterface.WaitForFlashSynced();
+            case DID_GPX_FLASH_CFG: 
+                gpxFlashCfg = (gpx_flash_cfg_t*)dataPtr; 
+                inertialSenseInterface.SetGpxFlashConfig(*gpxFlashCfg);
+                g_gpxFlashCfg_upload = *gpxFlashCfg; // Save for later use
+                inertialSenseInterface.WaitForGpxFlashCfgSynced();
+                break;
+            }
         }
     }
 
-
-    return false;
+    // Successfully read/wrote flash config
+    return success;
 }
