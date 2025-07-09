@@ -1115,7 +1115,7 @@ static void PopulateMapBrio(data_set_t data_set[DID_COUNT], uint32_t did)
     mapper.AddMember("groundVehicleStatus", &briometrix_t::groundVehicleStatus, DATA_TYPE_UINT32, "","", flags);
     mapper.AddMember("status", &briometrix_t::status, DATA_TYPE_UINT16, "","", flags);
     mapper.AddMember("loggerMode", &briometrix_t::loggerMode, DATA_TYPE_UINT8, "","", flags);
-
+}
     // ASSERT_SIZE(totalSize);
 static void PopulateMapGpxRtosInfo(data_set_t data_set[DID_COUNT], uint32_t did)
 {
