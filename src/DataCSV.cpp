@@ -72,7 +72,10 @@ int cDataCSV::WriteHeaderToFile(FILE* pFile, uint32_t id)
 		}
 	}
 	header += "\n";
-	fputs(header.c_str(), pFile);
+	if (fputs(header.c_str(), pFile) < 0) {
+        perror("fputs failed");
+    }
+    fflush(pFile); // Ensure data is written to file immediately
 	return (int)header.length();
 }
 
@@ -149,6 +152,7 @@ int cDataCSV::WriteDataToFile(uint64_t orderId, FILE* pFile, const p_data_hdr_t&
 	SNPRINTF(tmp, 64, "%llu", (long long unsigned int)orderId);
 	fputs(tmp, pFile);
 	fputs(s.c_str(), pFile);
+    fflush(pFile); // Ensure data is written to file immediately
 
 	// return the data string length plus comma plus order id string
     return (int)s.length() + 1 + (int)strnlen(tmp, sizeof(tmp));

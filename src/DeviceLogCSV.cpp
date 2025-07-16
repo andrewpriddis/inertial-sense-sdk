@@ -158,6 +158,9 @@ tryNextFile:
 		log.fileCount++;
 		fileName = GetNewFileName(serNum, log.fileCount, dataSetName);
 		log.pFile = fopen(fileName.c_str(), "w");
+        if (!log.pFile) {
+            perror("fopen failed");
+        }
 
 		// Write Header
 		int fileBytes = m_csv.WriteHeaderToFile(log.pFile, log.dataId);
