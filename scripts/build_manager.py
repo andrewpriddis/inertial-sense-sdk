@@ -130,26 +130,27 @@ class BuildTestManager:
 
     def test_footer(self, exit_code):  
         if exit_code:
-            self.print_red(f"[***** BUILD: {self.test_name} - FAILED *****]")
+            self.print_red(f"[***** TEST: {self.test_name} - FAILED *****]")
             self.test_failure.append(self.test_name)
         else:
-            self.print_grn(f"[BUILD: {self.test_name} - Passed]")
+            self.print_grn(f"[TEST: {self.test_name} - Passed]")
             self.test_success.append(self.test_name)
         print("")
 
     def print_summary(self):
-        if self.run_clean:
-            action = "CLEAN"
-        else:
-            action = "BUILD"
-        self.print_blu(f"==========================================")
-        self.print_blu(f" {action} SUMMARY:")
-        self.print_blu(f"==========================================")
-        if self.build_success:
-            self.print_grn(f"[PASSED]: " + ", ".join(self.build_success))
-        if self.build_failure:
-            self.print_red(f"[FAILED]: " + ", ".join(self.build_failure))
-        print("")
+        if self.run_build:
+            if self.run_clean:
+                action = "CLEAN"
+            else:
+                action = "BUILD"
+            self.print_blu(f"==========================================")
+            self.print_blu(f" {action} SUMMARY:")
+            self.print_blu(f"==========================================")
+            if self.build_success:
+                self.print_grn(f"[PASSED]: " + ", ".join(self.build_success))
+            if self.build_failure:
+                self.print_red(f"[FAILED]: " + ", ".join(self.build_failure))
+            print("")
         if self.run_test:
             self.print_cyn(f"==========================================")
             self.print_cyn(f" TEST SUMMARY:")
@@ -162,6 +163,8 @@ class BuildTestManager:
         self.print_release_info()
 
     def build_callback(self, project_name, callback):
+        if not self.run_build:
+            return
         result = 0
         self.build_header(project_name)
         result = callback(self.args)
@@ -181,6 +184,8 @@ class BuildTestManager:
         return result
 
     def build_script(self, project_name, script_path, args=[]):
+        if not self.run_build:
+            return
         if self.is_windows:
             command = ["cmd", "/c", str(script_path)]
         else:
@@ -205,6 +210,8 @@ class BuildTestManager:
         return result
 
     def build_cmake(self, project_name, project_dir):
+        if not self.run_build:
+            return
         project_dir = Path(project_dir)
 
         self.build_header(project_name)
@@ -276,7 +283,7 @@ class BuildTestManager:
         try:
             subprocess.check_call(exec_path, cwd=test_dir)
         except subprocess.CalledProcessError as e:
-            print(f"Error building {test_name}!")
+            print(f"Error testing {test_name}!")
             result = e.returncode
         self.test_footer(result)
         if result:

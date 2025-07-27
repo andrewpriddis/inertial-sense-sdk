@@ -1,7 +1,7 @@
 /*
 MIT LICENSE
 
-Copyright (c) 2014-2024 Inertial Sense, Inc. - http://inertialsense.com
+Copyright (c) 2014-2025 Inertial Sense, Inc. - http://inertialsense.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 
@@ -132,7 +132,7 @@ InertialSense::InertialSense(
     m_clientStream = NULLPTR;
     m_clientBufferBytesToSend = 0;
     m_clientServerByteCount = 0;
-    m_disableBroadcastsOnClose = false;  // For Intellian
+    m_disableBroadcastsOnClose = false;  // For Intel.
 
     for(int i=0; i<int(sizeof(m_comManagerState.binaryCallback)/sizeof(pfnHandleBinaryData)); i++)
     {
@@ -530,7 +530,7 @@ bool InertialSense::UpdateServer()
 
             if (ptype != _PTYPE_NONE)
             {	// Record message info
-                messageStatsAppend(str, m_serverMessageStats, ptype, comm->rxPkt.id, m_timeMs);
+                messageStatsAppend(str, m_serverMessageStats, ptype, comm->rxPkt.id, comm->rxPkt.size, m_timeMs);
             }
         }
     }
@@ -595,7 +595,7 @@ bool InertialSense::UpdateClient()
 
             if (ptype != _PTYPE_NONE)
             {	// Record message info
-                messageStatsAppend(str, m_clientMessageStats, ptype, comm->rxPkt.id, m_timeMs);
+                messageStatsAppend(str, m_clientMessageStats, ptype, comm->rxPkt.id, comm->rxPkt.size, m_timeMs);
             }
         }
     }
@@ -638,7 +638,7 @@ void InertialSense::Close()
     EnableLogger(false);
     if (m_disableBroadcastsOnClose)
     {
-        StopBroadcasts();
+        StopBroadcasts(false);
         SLEEP_MS(100);
     }
     CloseSerialPorts(true); // allow all opened ports to transmit all buffered data
