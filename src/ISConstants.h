@@ -1,7 +1,7 @@
 /*
 MIT LICENSE
 
-Copyright (c) 2014-2024 Inertial Sense, Inc. - http://inertialsense.com
+Copyright (c) 2014-2025 Inertial Sense, Inc. - http://inertialsense.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions :
 
@@ -144,9 +144,11 @@ extern "C" {
     #define SNPRINTF snprintf
     #define VSNPRINTF vsnprintf
 #elif PLATFORM_IS_EMBEDDED
-  #ifndef ARDUINO_SAMD_ZERO
-    #include "printf.h"		// Use embedded-safe SNPRINTF
-  #endif
+    #ifndef SAMD_ZERO
+        #ifndef ARDUINO_SAMD_ZERO
+            #include "printf.h"		// Use embedded-safe SNPRINTF
+        #endif
+    #endif
     #define SNPRINTF snprintf_
     #define VSNPRINTF vsnprintf_
 #else
@@ -318,8 +320,12 @@ extern "C" {
 #define _LIMIT2(x, xmin, xmax) { if ((x) < (xmin)) { (x) = (xmin); } else { if ((x) > (xmax)) { (x) = (xmax); } } }
 #endif
 
+#ifndef _ROUND_NEAREST
+#define _ROUND_NEAREST(number, multiple) ((((number) + ((multiple)/2)) / (multiple)) * (multiple))
+#endif
+
 #ifndef _ROUND_CLOSEST
-#define _ROUND_CLOSEST(dividend, divisor) (((dividend) + ((divisor)/2)) / (divisor))
+#define _ROUND_CLOSEST(number, multiple) (((number) + ((multiple)/2)) / (multiple))
 #endif
 
 #ifndef _ROUNDUP
