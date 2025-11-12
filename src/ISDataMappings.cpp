@@ -1115,6 +1115,10 @@ static void PopulateMapBrio(data_set_t data_set[DID_COUNT], uint32_t did)
     mapper.AddMember("groundVehicleStatus", &briometrix_t::groundVehicleStatus, DATA_TYPE_UINT32, "","", flags);
     mapper.AddMember("status", &briometrix_t::status, DATA_TYPE_UINT16, "","", flags);
     mapper.AddMember("loggerMode", &briometrix_t::loggerMode, DATA_TYPE_UINT8, "","", flags);
+    mapper.AddMember("roll_motion", &briometrix_t::roll_motion, DATA_TYPE_F64, SYM_DEG, "Roll relative to direction of motion", flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
+    mapper.AddMember("pitch_motion", &briometrix_t::pitch_motion, DATA_TYPE_F64, SYM_DEG, "Pitch relative to direction of motion", flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
+    mapper.AddMember("yaw_motion", &briometrix_t::yaw_motion, DATA_TYPE_F64, SYM_DEG, "Sideslip/crab angle", flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
+    mapper.AddMember("heading_motion", &briometrix_t::heading_motion, DATA_TYPE_F64, SYM_DEG, "Course over ground", flags | DATA_FLAGS_ANGLE, C_RAD2DEG);
 }
     // ASSERT_SIZE(totalSize);
 static void PopulateMapGpxRtosInfo(data_set_t data_set[DID_COUNT], uint32_t did)
