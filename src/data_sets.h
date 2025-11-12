@@ -5720,6 +5720,16 @@ typedef struct
 
     uint8_t loggerMode; //pause_state;
 
+    ///* Direction-of-motion attitude (calculated from GPS velocity and INS attitude)
+    ///* Roll relative to direction of motion (radians)
+    double roll_motion;
+    ///* Pitch relative to direction of motion (radians)
+    double pitch_motion;
+    ///* Sideslip/crab angle - difference between vehicle heading and motion direction (radians)
+    double yaw_motion;
+    ///* Course over ground - actual direction of travel (radians)
+    double heading_motion;
+
 } briometrix_t;
 
 enum eBrioLoggerStatus
