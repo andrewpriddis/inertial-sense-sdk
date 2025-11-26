@@ -78,6 +78,14 @@ if (WIN32)
 
     # We need to ensure windows static libs are found
     target_link_libraries(${PROJECT_NAME} Ws2_32.lib)
+elseif(APPLE)
+    # macOS specific compiler flags
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-field-initializers")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-field-initializers")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
+    # Link the math library explicitly for consistency with Linux build
+    target_link_libraries(${PROJECT_NAME} m)
 else ()
     # Linux specific include dir
     target_include_directories(${PROJECT_NAME} PUBLIC

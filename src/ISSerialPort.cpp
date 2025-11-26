@@ -14,10 +14,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "ISLogger.h"
 #include "ISFileManager.h"
 
+#include <cstring>
+
 #if PLATFORM_IS_LINUX
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/serial.h>
+#endif
+
+#if defined(__APPLE__)
+#include <glob.h>
 #endif
 
 using namespace std;
@@ -161,7 +167,7 @@ void cISSerialPort::GetComPorts(vector<string>& ports)
 		}
 	}
 
-#else	// Linux
+#elif PLATFORM_IS_LINUX
 
     struct dirent **namelist;
     vector<string> comList8250;
@@ -193,6 +199,32 @@ void cISSerialPort::GetComPorts(vector<string>& ports)
     // Only non-serial8250 has been added to comList without any further testing
     // serial8250-devices must be probe to check for validity
     probe_serial8250_comports(ports, comList8250);
+
+#else
+
+    auto addMatches = [&ports](const char* pattern)
+    {
+#if defined(__APPLE__)
+        glob_t globResult;
+        memset(&globResult, 0, sizeof(globResult));
+        if (glob(pattern, 0, nullptr, &globResult) == 0)
+        {
+            for (size_t i = 0; i < globResult.gl_pathc; ++i)
+            {
+                if (globResult.gl_pathv[i] != nullptr)
+                {
+                    ports.emplace_back(globResult.gl_pathv[i]);
+                }
+            }
+        }
+        globfree(&globResult);
+#else
+        (void)pattern;
+#endif
+    };
+
+    addMatches("/dev/cu.*");
+    addMatches("/dev/tty.*");
 
 #endif
 

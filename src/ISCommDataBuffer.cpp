@@ -139,7 +139,13 @@ int cComDataBuffer::ReadData(int pHandle, uint32_t dataId, vector<uint8_t>& data
 #ifdef __linux__
     fstat(fileno(file), &buf);
 #else
-    fstat(_fileno(file), &buf);
+        fstat(
+    #ifdef _WIN32
+        _fileno(file)
+    #else
+        fileno(file)
+    #endif
+        , &buf);
 #endif
     size_t size = buf.st_size;
     size_t pos = ftell(file);
