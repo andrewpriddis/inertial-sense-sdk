@@ -18,6 +18,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -362,8 +363,15 @@ static int serialPortOpenPlatform(serial_port_t* serialPort, const char* port, i
         return 0;
     }
 
-    ioctl(fd, TIOCEXCL);            // Exclusive Access Mode: prevent other processes from opening the port while its open
-    flock(fd, LOCK_EX | LOCK_NB);   // Exclusive & Non-Blocking Lock: prevent other process read/write of the fd file  
+    // The SDK defaults to exclusive access on serial ports.
+    // That blocks companion processes (e.g. brio-command-bridge) from opening /dev/Remote to inject commands.
+    // Skip exclusivity on /dev/Remote.
+    int skipExclusive = (port && (strcmp(port, "/dev/Remote") == 0 || strstr(port, "/Remote") != NULL));
+    if (!skipExclusive)
+    {
+        ioctl(fd, TIOCEXCL);            // Exclusive Access Mode
+        flock(fd, LOCK_EX | LOCK_NB);   // Exclusive & Non-Blocking Lock
+    }
 
     serialPortHandle* handle = (serialPortHandle*)calloc(sizeof(serialPortHandle), 1);
     handle->fd = fd;
