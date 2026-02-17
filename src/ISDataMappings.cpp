@@ -26,6 +26,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "ISUtilities.h"
 #include "ISConstants.h"
 #include "data_sets.h"
+#include "../../../src/data_sets_brio.h"
 
 #ifdef USE_IS_INTERNAL
 #include "../../cpp/libs/families/imx/IS_internal.h"
@@ -163,6 +164,8 @@ static void PopulateSizeMappings(uint32_t sizeMap[DID_COUNT])
 
     sizeMap[DID_EVENT] = sizeof(did_event_t);
 
+    sizeMap[DID_BRIO_DATA] = sizeof(briometrix_t);
+
     sizeMap[DID_GPX_DEV_INFO] = sizeof(dev_info_t);
     sizeMap[DID_GPX_STATUS] = sizeof(gpx_status_t);
     sizeMap[DID_GPX_FLASH_CFG] = sizeof(gpx_flash_cfg_t);
@@ -230,6 +233,63 @@ static void PopulateTimestampField(uint32_t id, const data_info_t** timestamps, 
     }
 
     timestamps[id] = NULLPTR; // ensure value is not garbage
+}
+
+static void PopulateBrioMappings(map_name_to_info_t mappings[DID_COUNT])
+{
+    typedef briometrix_t MAP_TYPE;
+    map_name_to_info_t& m = mappings[DID_BRIO_DATA];
+    uint32_t totalSize = 0;
+
+    ADD_MAP(m, totalSize, "towOffset_s", towOffset_s, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "hAcc", hAcc, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "vAcc", vAcc, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "n_sats", n_sats, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "gps_status", gps_status, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "timeOfWeekINS1_s", timeOfWeekINS1_s, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "roll", roll, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "pitch", pitch, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "yaw", yaw, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "cross_slope_percent", cross_slope_percent, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "slope_percent", slope_percent, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "latitude", latitude, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "longitude", longitude, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "altitude", altitude, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "latitudeRaw", latitudeRaw, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "longitudeRaw", longitudeRaw, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "altitudeRaw", altitudeRaw, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "speedX", speedX, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "speedY", speedY, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "speedZ", speedZ, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "ins_status", ins_status, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "gpsspeedX", gpsspeedX, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "gpsspeedY", gpsspeedY, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "gpsspeedZ", gpsspeedZ, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "week", week, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "timeOfWeekINS2_s", timeOfWeekINS2_s, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "q0", q0, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "q1", q1, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "q2", q2, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "q3", q3, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "gravX", gravX, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "gravY", gravY, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "gravZ", gravZ, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "timeIMU_s", timeIMU_s, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "aX", aX, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "aY", aY, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "aZ", aZ, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "gX", gX, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "gY", gY, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "gZ", gZ, 0, DataTypeFloat, float, 0);
+    ADD_MAP(m, totalSize, "groundVehicleStatus", groundVehicleStatus, 0, DataTypeUInt32, uint32_t, 0);
+    ADD_MAP(m, totalSize, "status", status, 0, DataTypeUInt16, uint16_t, 0);
+    ADD_MAP(m, totalSize, "loggerMode", loggerMode, 0, DataTypeUInt8, uint8_t, 0);
+    ADD_MAP(m, totalSize, "roll_motion", roll_motion, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "pitch_motion", pitch_motion, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "yaw_motion", yaw_motion, 0, DataTypeDouble, double, 0);
+    ADD_MAP(m, totalSize, "heading_motion", heading_motion, 0, DataTypeDouble, double, 0);
+
+    ASSERT_SIZE(sizeof(MAP_TYPE));
 }
 
 static void PopulateDeviceInfoMappings(map_name_to_info_t mappings[DID_COUNT], uint32_t id)
@@ -2761,7 +2821,7 @@ const char* const cISDataMappings::m_dataIdNames[] =
     "DID_EVB_LUNA_VELOCITY_COMMAND",    // 115
     "DID_EVB_LUNA_AUX_COMMAND",         // 116
     "",                                 // 117
-    "",                                 // 118
+    "DID_BRIO_DATA",                    // 118
     "DID_EVENT",                        // 119
     "DID_GPX_DEV_INFO",                 // 120
     "DID_GPX_FLASH_CFG",                // 121
@@ -2835,6 +2895,7 @@ cISDataMappings::cISDataMappings()
     PopulateReferenceIMUMappings(m_lookupInfo);
     PopulateIMUDeltaThetaVelocityMappings(m_lookupInfo, DID_REFERENCE_PIMU);
     PopulateInfieldCalMappings(m_lookupInfo);
+    PopulateBrioMappings(m_lookupInfo);
 
     PopulateISEventMappings(m_lookupInfo);
 
