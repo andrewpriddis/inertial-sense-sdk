@@ -4,7 +4,7 @@ The <a href="https://github.com/inertialsense/inertial-sense-sdk/blob/release/sr
 
 ## CLTool Example
 
-The <a href="https://github.com/inertialsense/inertial-sense-sdk/tree/main/cltool">Command Line Tool (cltool)</a> is an open source project designed to illustrate InertialSense C++ class implementation.  The cltool project can be compiled on most operating systems using cmake and gcc and can be used to communicate, log data, and update firmware for Inertial Sense products.  A Visual Studio project for Windows is also included.  See [Using cltool](../App_Usage/cltool.md) for details on compiling and running the cltool.
+The <a href="https://github.com/inertialsense/inertial-sense-sdk/tree/main/cltool">Command Line Tool (cltool)</a> is an open source project designed to illustrate InertialSense C++ class implementation.  The cltool project can be compiled on most operating systems using cmake and gcc and can be used to communicate, log data, and update firmware for Inertial Sense products.  A Visual Studio project for Windows is also included.  See the compile and run sections below for details.
 
 ### Implementation Keywords
 The following keywords are found in the cltool soure code identify the steps for InertialSense class implementation.
@@ -177,7 +177,7 @@ sudo udevadm control --reload-rules
 ```
 
 ## Compile & Run (Windows MS Visual Studio)
-1. [Install and Configure Visual Studio](../getting-started/#installing-and-configuring-visual-studio)
+1. Install and configure Visual Studio with CMake support.
 2. Open the project folder in Visual Studio: Open a local folder -> inertial-sense-sdk/cltool/
 3. Build All
 4. Run executable

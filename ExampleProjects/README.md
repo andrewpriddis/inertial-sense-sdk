@@ -4,11 +4,11 @@ The following example projects are provide with the SDK to demonstrate various c
 
 ## Example Projects
 
-* [Ascii Communications](Ascii/README) - How to communicate using NMEA protocol using SDK.
-* [Binary Communications](Communications/README) - How to communicate using InertialSense binary protocol using SDK. 
-* [Bootloader](bootloader/README) - How to update firmware on the InertialSense products using SDK.
-* [Logger ](Logger/README) - How to data log using using SDK.
-* [CLTool](..cltool/README) - A multipurpose command line tool capable most common functionalities, including those of all example projects.
+* [Ascii Communications](Ascii/README.md) - How to communicate using NMEA protocol using SDK.
+* [Binary Communications](Communications/README.md) - How to communicate using InertialSense binary protocol using SDK.
+* [Bootloader](Bootloader/README.md) - How to update firmware on the InertialSense products using SDK.
+* [Logger](ISLogger/README.md) - How to data log using SDK.
+* [CLTool](../cltool/README.md) - A multipurpose command line tool covering common SDK workflows.
 
 ## Compile & Run (Linux/Mac)
 
@@ -47,7 +47,7 @@ The following steps will build executables for all of the example projects.
 
 The following steps will build executables for all of the example projects.
 
-1. [Install and Configure Visual Studio](../getting-started/#installing-and-configuring-visual-studio)
+1. Install and configure Visual Studio with CMake support.
 2. Open the project folder in Visual Studio: Open a local folder -> inertial-sense-sdk/ExampleProjects/
 3. Build All
 4. Run executable
